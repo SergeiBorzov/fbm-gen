@@ -18,13 +18,13 @@
 #endif
 
 static inline void GLClearError() {
-	while (glGetError() != GL_NO_ERROR);
+    while (glGetError() != GL_NO_ERROR);
 }
 
 static inline bool GLLogCall() {
-	while(GLenum error = glGetError()) {
+    while(GLenum error = glGetError()) {
         fprintf(stderr, "[OpenGL_Error] (%d)\n", error);
         return false;
-	}
+    }
     return true;
 }
