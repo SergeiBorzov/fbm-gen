@@ -69,16 +69,8 @@ namespace fbmgen {
         glfwSetKeyCallback(m_WindowPointer, KeyPressCallback);
         glfwSetMouseButtonCallback(m_WindowPointer, MouseButtonCallback);
         glfwSetCursorPosCallback(m_WindowPointer, CursorPositionCallback);
-
         glfwMakeContextCurrent(m_WindowPointer);
-
-        // Glew initialization
-        glewExperimental = true; 
-        if (glewInit() != GLEW_OK) { 
-            glfwDestroyWindow(m_WindowPointer);
-            glfwTerminate();
-            return false;
-        }
+       
 
         glfwSwapInterval(0);
 

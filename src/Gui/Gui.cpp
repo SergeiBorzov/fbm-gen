@@ -11,7 +11,7 @@ namespace fbmgen {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO(); (void)io;
-         // Enable Keyboard Controls
+        // Enable Keyboard Controls
         //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;    
 
         // Setup Dear ImGui style
@@ -24,14 +24,12 @@ namespace fbmgen {
         return m_Renderer;
     }
 
-    
-
     void Gui::MenuBar() {
         if(ImGui::BeginMainMenuBar()) {
             
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
-                    fprintf(stderr, "Hello\n");
+
                 }
                 if (ImGui::MenuItem("New", "Ctrl + N")) {
 
@@ -75,15 +73,12 @@ namespace fbmgen {
     }
 
     void Gui::Stats() {
-        ImGui::SetNextWindowSize(ImVec2(160, 90));
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar;
-        window_flags |= ImGuiWindowFlags_NoResize;
         if (m_StatsVisible) {
             ImGui::Begin("Stats", &m_StatsVisible, window_flags);
-                ImGui::Text("Platform: ");
-                ImGui::Text("Device: ");
+                ImGui::Text("Platform: %s", m_Renderer->GetPlatformName());
+                ImGui::Text("Device: %s", m_Renderer->GetDeviceName());
                 ImGui::Text("FPS: ");
-               
             ImGui::End();
         }
     }
@@ -98,9 +93,6 @@ namespace fbmgen {
         Preview();
         Stats();
 
-        //ImGui::ShowDemoWindow();
-
-      
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
