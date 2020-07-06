@@ -6,12 +6,12 @@
 
 namespace fbmgen {
 
-    void Window::ErrorCallback(int error, const char* description) {
+    void Window::ErrorCallback(s32 error, const char* description) {
         fprintf(stderr, "GLFW error %d: %s\n", error, description);
     }
 
 
-    void Window::MouseButtonCallback(GLFWwindow*, int button, int action, int) {
+    void Window::MouseButtonCallback(GLFWwindow*, s32 button, s32 action, s32) {
         if (action == GLFW_PRESS) {
             Input::_Mouse[button] = true;
         }
@@ -20,7 +20,7 @@ namespace fbmgen {
         }
     }
 
-    void Window::KeyPressCallback(GLFWwindow*, int key, int, int action, int) {
+    void Window::KeyPressCallback(GLFWwindow*, s32 key, s32, s32 action, s32) {
         if (action == GLFW_PRESS) {
             Input::_Keys[key] = true;
         }

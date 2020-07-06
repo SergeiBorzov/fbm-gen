@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../Core/types.h"
+
 namespace fbmgen {
     class Input {
     friend class Window;
@@ -12,8 +14,8 @@ namespace fbmgen {
         static bool GetMouseDown(int code) { return !_MousePrevious[code] && _Mouse[code]; }
         static bool GetMouseUp(int code) { return _MousePrevious[code] && !_Mouse[code]; }
 
-        static double GetCursorX() { return _Cursor_X; }
-        static double GetCursorY() { return _Cursor_Y; }
+        static f64 GetCursorX() { return _Cursor_X; }
+        static f64 GetCursorY() { return _Cursor_Y; }
 
         static void Update();
     private:
@@ -23,8 +25,8 @@ namespace fbmgen {
         static bool _MousePrevious[8];
         static bool _Mouse[8];
 
-        static double _Cursor_X;
-        static double _Cursor_Y;
+        static f64 _Cursor_X;
+        static f64 _Cursor_Y;
         
     };
 }

@@ -5,28 +5,33 @@
 
 #include <GLFW/glfw3.h>
 
+#include "../Core/types.h"
+
 namespace fbmgen {
 
     class Window {
     friend class Application;
     public:
-        void GetPosition(int* x, int* y) const { glfwGetWindowPos(m_WindowPointer, x, y); }
-        void SetPosition(int x, int y) { glfwSetWindowPos(m_WindowPointer, x, y); }
+        void GetPosition(s32* x, s32* y) const { glfwGetWindowPos(m_WindowPointer, x, y); }
+        void SetPosition(s32 x, s32 y) { glfwSetWindowPos(m_WindowPointer, x, y); }
+
+        void SetSize(s32 width, s32 height) { m_WindowData.width = width; m_WindowData.height = height; }
+        void GetSize(s32* width, s32* heigth) const { *width = m_WindowData.width; *heigth = m_WindowData.height; }
 
         bool Create();
         void Update();
         bool ShouldClose() const { return glfwWindowShouldClose(m_WindowPointer); }
         ~Window();
     private:
-        static void ErrorCallback(int error, const char* description);
-        static void KeyPressCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-        static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+        static void ErrorCallback(s32 error, const char* description);
+        static void KeyPressCallback(GLFWwindow* window, s32 key, s32 scancode, s32 action, s32 mods);
+        static void MouseButtonCallback(GLFWwindow* window, s32 button, s32 action, s32 mods);
         static void CursorPositionCallback(GLFWwindow* window, double x, double y);
         
         struct WindowData {
             const char* title = "fbm-gen";
-            int width = 1280;
-            int height = 720;
+            s32 width = 1280;
+            s32 height = 720;
         };
 
         WindowData m_WindowData;

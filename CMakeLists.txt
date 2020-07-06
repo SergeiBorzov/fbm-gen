@@ -17,6 +17,7 @@ find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(cJSON CONFIG REQUIRED)
     
 
 file(GLOB Sources 
@@ -29,6 +30,8 @@ file(GLOB Sources
       "src/Third_Party/ImGui/*.cpp"
     )
 
+
+ 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 if (WIN32)
@@ -42,12 +45,11 @@ add_executable(fbm-gen ${Sources})
 target_include_directories(fbm-gen PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src 
                                           ${CMAKE_CURRENT_SOURCE_DIR}/src/Third_Party/ImGui
                                           ${CMAKE_CURRENT_SOURCE_DIR}/src/Third_Party/stb )
-target_link_libraries(fbm-gen PRIVATE ${OPENGL_LIBRARIES} GLEW::GLEW glfw glm)
 
-add_custom_command(TARGET fbm-gen POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy
-                   ${CMAKE_SOURCE_DIR}/assets/test.jpg
-                   ${CMAKE_CURRENT_BINARY_DIR}/bin/Debug/test.jpg)
+target_link_libraries(fbm-gen PRIVATE ${OPENGL_LIBRARIES} GLEW::GLEW glfw glm cjson)
 
+add_custom_command(TARGET fbm-gen PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                   ${CMAKE_SOURCE_DIR}/data $<TARGET_FILE_DIR:fbm-gen>)
 
 

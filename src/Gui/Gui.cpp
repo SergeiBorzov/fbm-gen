@@ -1,11 +1,13 @@
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+
+#include "../Core/types.h"
 #include "Gui.h"
 
 #include <cstdio>
 namespace fbmgen {
-    void Gui::Create(GLFWwindow* windowPointer) {
+    bool Gui::Create(GLFWwindow* windowPointer, Renderer* renderer) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -14,26 +16,17 @@ namespace fbmgen {
 
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();
-
         ImGui_ImplGlfw_InitForOpenGL(windowPointer, true);
         ImGui_ImplOpenGL3_Init("#version 130");
+
+        m_Renderer = renderer;
+
+        return m_Renderer;
     }
 
-    void Gui::DrawStats() {
-        ImGui::SetNextWindowSize(ImVec2(160, 90));
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar;
-        window_flags |= ImGuiWindowFlags_NoResize;
-        if (m_StatsVisible) {
-            ImGui::Begin("Stats", &m_StatsVisible, window_flags);
-                ImGui::Text("Platform: ");
-                ImGui::Text("Device: ");
-                ImGui::Text("FPS: ");
-               
-            ImGui::End();
-        }
-    }
+    
 
-    void Gui::DrawMenuBar() {
+    void Gui::MenuBar() {
         if(ImGui::BeginMainMenuBar()) {
             
             if (ImGui::BeginMenu("File")) {
@@ -69,17 +62,43 @@ namespace fbmgen {
         }
     }
 
+    void Gui::Preview() {
+        ImGui::SetNextWindowPos(ImVec2(0, 18));
+	    ImGui::SetNextWindowSize(ImVec2(1024, 620));
+	    ImGui::Begin("Preview", NULL, ImGuiWindowFlags_NoResize);
+
+        const Texture* texture = m_Renderer->GetTexture();
+	    ImGui::Image((void*)(intptr_t)texture->GetHandle(), 
+				 ImVec2((float)texture->GetWidth(), (float)texture->GetHeight()), 
+				 ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+	    ImGui::End();
+    }
+
+    void Gui::Stats() {
+        ImGui::SetNextWindowSize(ImVec2(160, 90));
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar;
+        window_flags |= ImGuiWindowFlags_NoResize;
+        if (m_StatsVisible) {
+            ImGui::Begin("Stats", &m_StatsVisible, window_flags);
+                ImGui::Text("Platform: ");
+                ImGui::Text("Device: ");
+                ImGui::Text("FPS: ");
+               
+            ImGui::End();
+        }
+    }
+
     void Gui::Draw() {
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        DrawMenuBar();
-        DrawStats();
+        MenuBar();
+        Preview();
+        Stats();
 
-
-        ImGui::ShowDemoWindow();
+        //ImGui::ShowDemoWindow();
 
       
         ImGui::Render();
