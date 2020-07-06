@@ -6,6 +6,41 @@
 
 namespace fbmgen {
 
+    Texture* Texture::CreateEmpty(s32 width, s32 height, s32 channels) {
+        Texture* result = new Texture();
+        GLCall(glGenTextures(1, &result->m_Handle);)
+        result->Bind();
+
+        switch(channels) {
+            case 1: {
+                GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);)
+                break;
+            }
+            case 2: {
+                GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, width, height, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);)
+                break;
+            }
+            case 3: {
+                GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);)
+                break;
+            }
+            case 4: {
+                GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);)
+                break;
+            }
+            default: {
+                assert(false);
+                return nullptr;
+            }
+        }
+        GLCall(glGenerateMipmap(GL_TEXTURE_2D);)
+
+        result->SetFilterMode(result->m_FilterMode);
+        result->SetWrapMode(result->m_WrapMode);
+
+        return result;
+    }
+
     Texture* Texture::Load(const char* filename) {
         Texture* result = new Texture();
         GLCall(glGenTextures(1, &result->m_Handle);)

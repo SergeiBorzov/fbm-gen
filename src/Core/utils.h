@@ -11,7 +11,7 @@
 
 
 namespace fbmgen {
-    bool ReadTextFileToString(const char* filename, char** str, size_t* size);
+    bool ReadFileToString(const char* filename, char** str, size_t* size);
 }
 
 

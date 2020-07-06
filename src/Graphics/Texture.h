@@ -6,6 +6,7 @@
 namespace fbmgen {
     class Texture {
     public:
+        static Texture* CreateEmpty(s32 width, s32 height, s32 channels);
         static Texture* Load(const char* filename);
 
         enum class WrapMode { Repeat, Mirrored, Edge, Border };
@@ -25,6 +26,8 @@ namespace fbmgen {
 
         ~Texture();
     private:
+        Texture(){}
+
         WrapMode m_WrapMode = WrapMode::Repeat;
         FilterMode m_FilterMode = FilterMode::Nearest;
         u32 m_Handle = 0; 

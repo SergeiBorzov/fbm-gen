@@ -4,10 +4,10 @@
 #include "utils.h"
 
 namespace fbmgen {
-    bool ReadTextFileToString(const char* filename, char** buffer, size_t* buffer_size) {
+    bool ReadFileToString(const char* filename, char** buffer, size_t* buffer_size) {
         FILE *f;
         size_t file_size;
-        f = fopen (filename, "r");
+        f = fopen (filename, "rb");
         if(!f) {
             fprintf(stderr, "Failed to open file %s\n", filename);
             return false;
