@@ -2,6 +2,7 @@
 #define FBMGEN_UTILS
 
 #ifdef _WIN32
+#include <Windows.h>
 #include <direct.h>
 #define GetCurrentDir _getcwd
 #else
@@ -12,6 +13,7 @@
 
 namespace fbmgen {
     bool ReadFileToString(const char* filename, char** str, size_t* size);
+    bool GetAbsolutePath(char* buffer, size_t buffer_size);
 }
 
 

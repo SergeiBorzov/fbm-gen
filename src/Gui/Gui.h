@@ -1,15 +1,17 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
-#include <imgui.h>
 
-#include "../Graphics/Renderer.h"
+#include <imgui.h>
+#include <imfilebrowser.h>
+
 
 namespace fbmgen {
 
+    class Application;
+
     class Gui {
     public:
-        bool Create(GLFWwindow* windowPointer, Renderer* renderer);
+        bool Create(Application* app);
         void Draw();
 
         ~Gui();
@@ -17,9 +19,11 @@ namespace fbmgen {
         void MenuBar();
         void Preview();
         void Stats();
+        void FileExplorer();
 
-        Renderer* m_Renderer = nullptr;
-        bool m_StatsVisible = true;
+        ImGui::FileBrowser m_FileExplorer;
+        Application* m_App = nullptr;
+        
     };
     
 }

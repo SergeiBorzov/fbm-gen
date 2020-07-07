@@ -3,9 +3,10 @@
 #include <GL/glew.h>
 #define GLEW_STATIC
 
-#include <GLFW/glfw3.h>
 
 #include "../Core/types.h"
+
+#include <GLFW/glfw3.h>
 
 namespace fbmgen {
 
@@ -18,13 +19,18 @@ namespace fbmgen {
         void SetSize(s32 width, s32 height) { m_WindowData.width = width; m_WindowData.height = height; }
         void GetSize(s32* width, s32* heigth) const { *width = m_WindowData.width; *heigth = m_WindowData.height; }
 
+        GLFWwindow* GetPtr() const { return m_WindowPointer; }
+
+        bool ShouldClose() const { return glfwWindowShouldClose(m_WindowPointer); }
+        void Close() { glfwSetWindowShouldClose(m_WindowPointer, true); }
+
         bool Create();
         void Update();
-        bool ShouldClose() const { return glfwWindowShouldClose(m_WindowPointer); }
         ~Window();
     private:
         static void ErrorCallback(s32 error, const char* description);
         static void KeyPressCallback(GLFWwindow* window, s32 key, s32 scancode, s32 action, s32 mods);
+        static void ResizeCallback(GLFWwindow* window, s32 width, s32 height);
         static void MouseButtonCallback(GLFWwindow* window, s32 button, s32 action, s32 mods);
         static void CursorPositionCallback(GLFWwindow* window, double x, double y);
         

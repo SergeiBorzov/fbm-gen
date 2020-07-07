@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "types.h"
 #include "utils.h"
 
 namespace fbmgen {
@@ -44,5 +45,26 @@ namespace fbmgen {
         }
         fclose(f);
         return true;
+    }
+
+    bool GetAbsolutePath(char* buffer, size_t buffer_size) {
+#ifdef _WIN32
+        char path_exe[MAX_PATH];
+        GetModuleFileNameA(NULL, path_exe, MAX_PATH);
+        char *last = strrchr(path_exe, '\\');
+        
+        if (last) {
+            size_t len = (size_t) (last - path_exe + 1);
+            if (len + 1 > buffer_size) {
+                fprintf(stderr, "Buffer is too small for absolute path");
+                return false;
+            }
+            strncpy(buffer, path_exe, len);
+            buffer[len] = '\0';
+        }
+        return true;
+#else
+        return false;
+#endif
     }
 }

@@ -9,6 +9,11 @@ namespace fbmgen {
     public:
         bool Create();
         void Run();
+
+        inline Renderer& GetRenderer() const { return *m_Renderer; }
+        inline Window& GetWindow() const { return *m_Window; }
+        inline Gui& GetGui() const { return *m_Gui; }
+
         ~Application();
     private:
         Window* m_Window = nullptr;

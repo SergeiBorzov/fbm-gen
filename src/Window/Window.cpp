@@ -1,4 +1,5 @@
 
+
 #include <cstdio>
 
 #include "Window.h"
@@ -34,6 +35,13 @@ namespace fbmgen {
         Input::_Cursor_Y = y;
     }
 
+    void Window::ResizeCallback(GLFWwindow* window, s32 width, s32 height) {
+        WindowData* data = static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+
+        data->width = width;
+        data->height = height;
+    }
+
     bool Window::Create() {
 
         /* GLFW initialization */
@@ -49,6 +57,7 @@ namespace fbmgen {
         glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
         glfwWindowHint(GLFW_CENTER_CURSOR, GL_TRUE);
         glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
+        
         //glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 
         // Mac OS support
@@ -66,9 +75,13 @@ namespace fbmgen {
             return false;
         }
 
+        glfwSetWindowSizeLimits(m_WindowPointer, 960, 418, GLFW_DONT_CARE, GLFW_DONT_CARE);
+        glfwSetWindowUserPointer(m_WindowPointer, &m_WindowData);
+
         glfwSetKeyCallback(m_WindowPointer, KeyPressCallback);
         glfwSetMouseButtonCallback(m_WindowPointer, MouseButtonCallback);
         glfwSetCursorPosCallback(m_WindowPointer, CursorPositionCallback);
+        glfwSetWindowSizeCallback(m_WindowPointer, ResizeCallback);
         glfwMakeContextCurrent(m_WindowPointer);
        
 

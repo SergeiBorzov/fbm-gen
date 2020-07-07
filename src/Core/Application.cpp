@@ -8,8 +8,9 @@
 namespace fbmgen {
 
     bool Application::Create() {
+
         m_Window = new Window();
-        m_Window->SetSize(1366, 768);
+        m_Window->SetSize(1536, 658);
         m_Renderer = new Renderer();
         m_Gui = new Gui();
 
@@ -23,8 +24,10 @@ namespace fbmgen {
             return false;
         }
 
-        m_Gui->Create(m_Window->m_WindowPointer, m_Renderer);
-
+        if (!m_Gui->Create(this)) {
+            fprintf(stderr, "Error: Can't create gui.");
+            return false;
+        }
         return true;
     }
 

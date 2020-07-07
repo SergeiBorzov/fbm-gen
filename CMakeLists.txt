@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(fbm-gen)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # Use the highest warning level for Visual Studio.

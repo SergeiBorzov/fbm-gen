@@ -20,7 +20,6 @@ namespace fbmgen {
 
         ~Renderer();
     private:
-
         Texture* m_Texture = NULL;
 
 
@@ -33,6 +32,8 @@ namespace fbmgen {
         cl_device_id device_id = 0;
         cl_context context = 0;
         cl_program warp_program = 0;
-       
+        cl_kernel kernel = 0;
+        cl_command_queue command_queue = 0;
+        cl_mem image_object = 0;
     };
 }

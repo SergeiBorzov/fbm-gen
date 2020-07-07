@@ -10,6 +10,9 @@ namespace fbmgen {
         Texture* result = new Texture();
         GLCall(glGenTextures(1, &result->m_Handle);)
         result->Bind();
+        result->m_Width = width;
+        result->m_Height = height;
+        result->m_Channels = channels;
 
         switch(channels) {
             case 1: {
