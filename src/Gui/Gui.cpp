@@ -5,13 +5,16 @@
 #include "../Core/types.h"
 #include "../Core/Application.h"
 
+#include "../Input/Input.h"
+
 #include <cstdio>
 namespace fbmgen {
     bool Gui::Create(Application* app) {
         m_App = app;
 
+        
         if (m_App) {
-             IMGUI_CHECKVERSION();
+            IMGUI_CHECKVERSION();
             ImGui::CreateContext();
             auto& io = ImGui::GetIO(); (void)io;
             // Enable Keyboard Controls
@@ -21,6 +24,12 @@ namespace fbmgen {
             ImGui::StyleColorsDark();
             ImGui_ImplGlfw_InitForOpenGL(m_App->GetWindow().GetPtr(), true);
             ImGui_ImplOpenGL3_Init("#version 130");
+
+
+            m_FileExplorerLoadConfig.SetTitle("Open config file");
+            m_FileExplorerLoadConfig.SetTitle("Save config file");
+            m_FileExplorerRender.SetTitle("Render image as");
+
             return true;
         }
 
@@ -39,13 +48,15 @@ namespace fbmgen {
 
                 }
                 ImGui::Separator();
-                if (ImGui::MenuItem("Open", "Ctrl + O")) {
-                    m_FileExplorer.SetTitle("Open config file");
-                    m_FileExplorer.Open();
+                
+                if (ImGui::MenuItem("Open", "Ctrl + O") || 
+                    Input::GetKey(KeyCode::LeftCtrl)) {
+                    m_FileExplorerLoadConfig.Open();
                 }
+
                 ImGui::Separator();
                 if (ImGui::MenuItem("Save", "Ctrl + S")) {
-
+                    m_FileExplorerSaveConfig.Open();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem("Exit", "Alt + F4")) {
@@ -56,7 +67,7 @@ namespace fbmgen {
 
             if (ImGui::BeginMenu("Render")) {
                 if (ImGui::MenuItem("Render Image", "F5")) {
-
+                    m_FileExplorerRender.Open();
                 }
                 ImGui::EndMenu();
             }
@@ -113,11 +124,33 @@ namespace fbmgen {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        
         MenuBar();
         Preview();
         Stats();
 
-        FileExplorer();
+        SaveConfig();
+        LoadConfig();
+        RenderImage();
+
+        /* Shortcuts */
+        if ((Input::GetKey(KeyCode::LeftCtrl) || Input::GetKey(KeyCode::RightCtrl)) && Input::GetKey(KeyCode::O)) {
+            if (!m_FileExplorerLoadConfig.IsOpened()) {
+                m_FileExplorerLoadConfig.Open();
+            }
+        }
+
+        if ((Input::GetKey(KeyCode::LeftCtrl) || Input::GetKey(KeyCode::RightCtrl)) && Input::GetKey(KeyCode::S)) {
+            if (!m_FileExplorerSaveConfig.IsOpened()) {
+                m_FileExplorerSaveConfig.Open();
+            }
+        }
+
+        if (Input::GetKeyDown(KeyCode::F5)) {
+            if (!m_FileExplorerRender.IsOpened()) {
+                m_FileExplorerRender.Open();
+            }
+        }
         
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -129,13 +162,36 @@ namespace fbmgen {
         ImGui::DestroyContext();
     }
 
-    void Gui::FileExplorer() {
-        m_FileExplorer.Display();
+    void Gui::LoadConfig() {
+        m_FileExplorerLoadConfig.Display();
         
-        if(m_FileExplorer.HasSelected())
+        if(m_FileExplorerLoadConfig.HasSelected())
         {
-            fprintf(stderr, "%s\n", m_FileExplorer.GetSelected().string().c_str());
-            m_FileExplorer.ClearSelected();
+            fprintf(stderr, "%s\n", m_FileExplorerLoadConfig.GetSelected().string().c_str());
+            m_FileExplorerLoadConfig.ClearSelected();
+            m_FileExplorerLoadConfig.Close();
         }
     }   
+
+    void Gui::SaveConfig() {
+        m_FileExplorerSaveConfig.Display();
+        
+        if(m_FileExplorerSaveConfig.HasSelected())
+        {
+            fprintf(stderr, "%s\n", m_FileExplorerSaveConfig.GetSelected().string().c_str());
+            m_FileExplorerSaveConfig.ClearSelected();
+            m_FileExplorerSaveConfig.Close();
+        }
+    }
+
+    void Gui::RenderImage() {
+        m_FileExplorerRender.Display();
+        
+        if(m_FileExplorerRender.HasSelected())
+        {
+            fprintf(stderr, "%s\n", m_FileExplorerRender.GetSelected().string().c_str());
+            m_FileExplorerRender.ClearSelected();
+            m_FileExplorerRender.Close();
+        }
+    }
 }

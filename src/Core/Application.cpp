@@ -34,6 +34,10 @@ namespace fbmgen {
     void Application::Run() {       
         while(!m_Window->ShouldClose()) {
             Input::Update();
+
+            if (Input::GetKey(KeyCode::W)) {
+                fprintf(stderr, "Hey!\n");
+            }
             m_Window->Update();
             m_Renderer->Draw();
             m_Gui->Draw();

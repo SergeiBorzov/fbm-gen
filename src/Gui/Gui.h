@@ -19,11 +19,16 @@ namespace fbmgen {
         void MenuBar();
         void Preview();
         void Stats();
-        void FileExplorer();
-
-        ImGui::FileBrowser m_FileExplorer;
-        Application* m_App = nullptr;
         
+        void LoadConfig();
+        void SaveConfig();
+        void RenderImage();
+
+        ImGui::FileBrowser m_FileExplorerLoadConfig;
+        ImGui::FileBrowser m_FileExplorerSaveConfig;
+        ImGui::FileBrowser m_FileExplorerRender;
+
+        Application* m_App = nullptr;
     };
     
 }

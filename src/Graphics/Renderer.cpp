@@ -93,6 +93,7 @@ namespace fbmgen {
         if (!ReadFileToString(path_to_program, &source_string, &source_string_size)) {
             return false;
         }
+        
         size_t source_string_length = source_string_size / sizeof(char);
  
         const char* source = source_string;
@@ -117,6 +118,8 @@ namespace fbmgen {
             delete[] program_log;
             return false;
         }
+
+        free(source_string);
         /* OpenCL Program - end */
 
         /* OpenCL Kernel - begin */
