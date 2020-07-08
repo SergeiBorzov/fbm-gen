@@ -19,13 +19,13 @@ namespace fbmgen {
             return false;
         }
 
-        if (!m_Renderer->Create()) {
-            fprintf(stderr, "Error: Can't create renderer.");
+        if (!m_Renderer->Create(this)) {
+            m_Log.AddLog("Error: Can't create renderer.");
             return false;
         }
 
         if (!m_Gui->Create(this)) {
-            fprintf(stderr, "Error: Can't create gui.");
+            m_Log.AddLog("Error: Can't create gui.");
             return false;
         }
         return true;
@@ -34,10 +34,6 @@ namespace fbmgen {
     void Application::Run() {       
         while(!m_Window->ShouldClose()) {
             Input::Update();
-
-            if (Input::GetKey(KeyCode::W)) {
-                fprintf(stderr, "Hey!\n");
-            }
             m_Window->Update();
             m_Renderer->Draw();
             m_Gui->Draw();

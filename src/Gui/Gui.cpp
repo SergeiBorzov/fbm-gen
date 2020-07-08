@@ -4,36 +4,43 @@
 
 #include "../Core/types.h"
 #include "../Core/Application.h"
+#include "../Graphics/ImageExtension.h"
 
 #include "../Input/Input.h"
 
 #include <cstdio>
+
+#include <thread>
+
 namespace fbmgen {
     bool Gui::Create(Application* app) {
-        m_App = app;
-
-        
-        if (m_App) {
-            IMGUI_CHECKVERSION();
-            ImGui::CreateContext();
-            auto& io = ImGui::GetIO(); (void)io;
-            // Enable Keyboard Controls
-            //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;    
-
-            // Setup Dear ImGui style
-            ImGui::StyleColorsDark();
-            ImGui_ImplGlfw_InitForOpenGL(m_App->GetWindow().GetPtr(), true);
-            ImGui_ImplOpenGL3_Init("#version 130");
-
-
-            m_FileExplorerLoadConfig.SetTitle("Open config file");
-            m_FileExplorerLoadConfig.SetTitle("Save config file");
-            m_FileExplorerRender.SetTitle("Render image as");
-
-            return true;
+        if (!app) {
+            return false;
         }
 
-        return false;       
+        m_App = app;
+        auto& log = m_App->GetLog();
+        
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        auto& io = ImGui::GetIO(); (void)io;
+        // Enable Keyboard Controls
+        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;    
+        // Setup Dear ImGui style
+
+        ImGui::StyleColorsDark();
+        ImGui_ImplGlfw_InitForOpenGL(m_App->GetWindow().GetPtr(), true);
+        ImGui_ImplOpenGL3_Init("#version 130");
+
+        m_FileExplorerLoadConfig.SetTitle("Open config file");
+        m_FileExplorerLoadConfig.SetTitle("Save config file");
+        m_FileExplorerRender.SetTitle("Save image as");
+
+        std::vector<const char*> image_filter = { ".jpg", ".jpeg", ".png", ".bmp" };
+        m_FileExplorerRender.SetTypeFilters(image_filter);
+        
+        log.AddLog("Gui inited sucessfully\n");
+        return true;
     }
 
     void Gui::MenuBar() {
@@ -67,7 +74,11 @@ namespace fbmgen {
 
             if (ImGui::BeginMenu("Render")) {
                 if (ImGui::MenuItem("Render Image", "F5")) {
-                    m_FileExplorerRender.Open();
+                    m_RenderSettingsVisible = true;
+                    s32 width;
+                    s32 height;
+                    window.GetSize(&width, &height);
+                    ImGui::SetNextWindowPos(ImVec2(width*0.5f, height*0.5f));
                 }
                 ImGui::EndMenu();
             }
@@ -84,7 +95,7 @@ namespace fbmgen {
         s32 width, height;
         window.GetSize(&width, &height);
 
-        ImVec2 previewSize = ImVec2((float)width*2/3, (float) (height - 18));
+        ImVec2 previewSize = ImVec2((float)width*2/3, (float) (height - 168));
 	    ImGui::SetNextWindowSize(previewSize);
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
 	    ImGui::Begin("Preview", NULL, window_flags);
@@ -98,6 +109,25 @@ namespace fbmgen {
             ImVec2(previewSize.x, previewSize.x * 10 / 16),
 		    ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
 	    ImGui::End();
+    }
+
+    void Gui::Log() {
+        auto& log = m_App->GetLog();
+        auto& window = m_App->GetWindow();
+
+        s32 width, height;
+        window.GetSize(&width, &height);
+        ImVec2 previewSize = ImVec2((float)width*2/3, 150.0f);
+
+	    ImGui::SetNextWindowSize(previewSize);
+        ImGui::SetNextWindowPos(ImVec2(0, height - 150.0f));
+
+        ImGui::Begin("Log", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        ImGui::TextUnformatted(log.buffer.begin());
+        if (log.scroll_to_bottom)
+            ImGui::SetScrollHere(1.0f);
+        log.scroll_to_bottom = false;
+        ImGui::End();
     }
 
     void Gui::Stats() {
@@ -124,16 +154,6 @@ namespace fbmgen {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        
-        MenuBar();
-        Preview();
-        Stats();
-
-        SaveConfig();
-        LoadConfig();
-        RenderImage();
-
-        /* Shortcuts */
         if ((Input::GetKey(KeyCode::LeftCtrl) || Input::GetKey(KeyCode::RightCtrl)) && Input::GetKey(KeyCode::O)) {
             if (!m_FileExplorerLoadConfig.IsOpened()) {
                 m_FileExplorerLoadConfig.Open();
@@ -147,10 +167,31 @@ namespace fbmgen {
         }
 
         if (Input::GetKeyDown(KeyCode::F5)) {
-            if (!m_FileExplorerRender.IsOpened()) {
-                m_FileExplorerRender.Open();
+            if (!m_RenderSettingsVisible) {
+                m_RenderSettingsVisible = true;
+                auto& window = m_App->GetWindow();
+                s32 width;
+                s32 height;
+                window.GetSize(&width, &height);
+                ImGui::SetNextWindowPos(ImVec2(width*0.5f, height*0.5f));
             }
         }
+        
+        MenuBar();
+        Preview();
+        Log();
+        Stats();
+
+        SaveConfig();
+        LoadConfig();
+        RenderSettings();
+        RenderImage();
+
+        
+        ImGui::ShowDemoWindow();
+
+        /* Shortcuts */
+        
         
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -184,12 +225,79 @@ namespace fbmgen {
         }
     }
 
+    void Gui::RenderSettings() {
+        if (m_RenderSettingsVisible) {
+            auto& renderer = m_App->GetRenderer();
+
+            ImGui::Begin("Render image", &m_RenderSettingsVisible);
+            ImGui::PushItemWidth(100.0f);
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextWrapped("Output: %s", (output_path + output_name).c_str());
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvailWidth() - 105.0f);
+            if (ImGui::Button("Configure", ImVec2(100, 20))) {
+                m_FileExplorerRender.Open();
+            }
+            ImGui::Separator();
+            
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Width:");
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvailWidth() - 105.0f);
+            ImGui::DragInt("##width", &output_width, 1, 640, 8192);
+
+            //ImGui::AlignTextToFramePadding();
+            ImGui::Text("Height:");
+            
+            ImGui::AlignTextToFramePadding();
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvailWidth() - 105.0f);
+
+            ImGui::DragInt("##height", &output_height, 1, 640, 8192);
+
+            if (output_extension == ImageExtension::Jpeg) {
+                ImGui::Separator();
+                //ImGui::AlignTextToFramePadding();
+                ImGui::Text("Quality:");
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvailWidth() - 105.0f);
+                ImGui::DragInt("##quality", &output_quality, 1, 1, 100);
+            }
+
+            ImGui::Separator();
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvailWidth() - 105.0f);
+            if (ImGui::Button("Render", ImVec2(100, 20))) {
+                renderer.RenderImage((output_path + output_name).c_str(), output_width, output_height, output_extension, output_quality);
+                m_RenderSettingsVisible = false;
+            }
+
+            ImGui::PopItemWidth();
+            ImGui::End();
+        }
+    }
+
     void Gui::RenderImage() {
-        m_FileExplorerRender.Display();
         
-        if(m_FileExplorerRender.HasSelected())
-        {
-            fprintf(stderr, "%s\n", m_FileExplorerRender.GetSelected().string().c_str());
+        m_FileExplorerRender.Display();
+        if(m_FileExplorerRender.HasSelected()) {
+            output_path = m_FileExplorerRender.GetSelected().parent_path().u8string() + "\\";
+            output_name = m_FileExplorerRender.GetSelected().filename().u8string();
+
+            if (m_FileExplorerRender.GetSelected().extension().u8string() == ".png") {
+                output_extension = ImageExtension::Png;
+            }
+            else if (m_FileExplorerRender.GetSelected().extension().u8string() == ".jpg" ||
+                     m_FileExplorerRender.GetSelected().extension().u8string() == ".jpeg") {
+                output_extension = ImageExtension::Jpeg;
+            }
+            else if (m_FileExplorerRender.GetSelected().extension().u8string() == ".bmp") {
+                output_extension = ImageExtension::Bmp;
+            }
+            else {
+                auto& log = m_App->GetLog();
+                log.AddLog("Wrong extension: %s, using .png instead\n", m_FileExplorerRender.GetSelected().extension().u8string().c_str());
+                output_name = m_FileExplorerRender.GetSelected().stem().u8string() + ".png";
+                output_extension = ImageExtension::Png;
+            }
             m_FileExplorerRender.ClearSelected();
             m_FileExplorerRender.Close();
         }

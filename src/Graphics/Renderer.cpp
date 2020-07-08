@@ -1,13 +1,26 @@
 #include <windows.h>
 
+
+#include <chrono>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 #include "../Core/fbmgen_gl.h"
 #include "../Core/utils.h"
-#include "Renderer.h"
+
+#include "ImageExtension.h"
+#include "../Core/Application.h"
 
 namespace fbmgen {
 
-    bool Renderer::Create() {
+    bool Renderer::Create(Application* app) {
+        if (!app) {
+            return false;
+        }
 
+        m_App = app;
+        auto& log = m_App->GetLog();
         // GLEW:
         glewExperimental = true; 
         if (glewInit() != GLEW_OK) { 
@@ -149,6 +162,7 @@ namespace fbmgen {
         };
         /* Create OpenGL texture and share it - end */
 
+        log.AddLog("Renderer inited sucessfully\n");
         return m_Texture;
     }
 
@@ -169,7 +183,7 @@ namespace fbmgen {
         }
 
         //fprintf(stderr, "Size %d, %u\n",  m_Texture->GetWidth(), global_work_size[1]);
-        if (clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL) == CL_INVALID_GLOBAL_WORK_SIZE) {
+        if (clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL) != CL_SUCCESS) {
             fprintf(stderr, "Error running kernel!\n");
         }
 
@@ -177,6 +191,92 @@ namespace fbmgen {
             fprintf(stderr, "Error releasing GL Objects!\n");
         }
         clFinish(command_queue);
+    }
+
+    void Renderer::RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality) {
+        auto& log = m_App->GetLog();
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        /* Create image object */
+        cl_mem output_image = 0;
+        cl_image_format format[] = { CL_RGBA, CL_FLOAT };
+        cl_image_desc desc;
+        desc.image_type = CL_MEM_OBJECT_IMAGE2D;
+        desc.image_width = width;
+        desc.image_height = height;
+        desc.image_array_size = 0;
+        desc.image_row_pitch = 0;
+        desc.image_slice_pitch = 0;
+        desc.num_mip_levels = 0;
+        desc.num_samples = 0;
+
+        output_image = clCreateImage(context, CL_MEM_WRITE_ONLY, format, &desc, NULL, NULL);
+
+        if (!output_image) {
+            fprintf(stderr, "Failed to create OpenCL image!\n");
+            return;
+        }
+
+        /* Run kernel */
+        if (clSetKernelArg(kernel, 0, sizeof(cl_mem), &output_image) != CL_SUCCESS) {
+            fprintf(stderr, "Error setting kernel argument!\n");
+        }
+
+        size_t global_work_size[] = {(size_t)width, (size_t)height};
+        if (clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL) != CL_SUCCESS) {
+            fprintf(stderr, "Failed to render result!\n");
+            return;
+        }
+
+        clFinish(command_queue);
+
+        /* Write result to file */
+
+        cl_float4* data = static_cast<cl_float4*>(malloc(sizeof(cl_float4)*width*height));
+        u8* buffer = static_cast<u8*>(malloc(sizeof(u8)*width*height*4));
+
+        
+        size_t origin[] = {0, 0, 0};
+        size_t region[] = {(size_t)width, (size_t)height, 1};
+        if (clEnqueueReadImage(command_queue, output_image, CL_TRUE, origin, region, 0, 0, data, 0, NULL, NULL) != CL_SUCCESS) {
+            fprintf(stderr, "Failed to read image from OpenCL!\n");
+            return;
+        }
+
+        for (int j = 0; j < height; j++) {
+		    for (int i = 0; i < width; i++) {
+			    cl_float4 item = data[((long int)height - 1 - j)* width + i];
+			    buffer[(long int)width*4*j + 4*i + 0] = static_cast<u8>(item.s[0] * 255.0f);
+			    buffer[(long int)width*4*j + 4*i + 1] = static_cast<u8>(item.s[1] * 255.0f);
+			    buffer[(long int)width*4*j + 4*i + 2] = static_cast<u8>(item.s[2] * 255.0f);
+			    buffer[(long int)width*4*j + 4*i + 3] = static_cast<u8>(item.s[3] * 255.0f);
+		    }
+	    }
+
+        switch (extension) {
+            case ImageExtension::Png: {
+                stbi_write_png(path, width, height, 4, buffer, width * 4 * sizeof(u8));
+                break;
+            }
+            case ImageExtension::Bmp: {
+                stbi_write_bmp(path, width, height, 4, buffer);
+                break;
+            }
+            case ImageExtension::Jpeg: {
+                stbi_write_jpg(path, width, height, 4, buffer, quality);
+                break;
+            }
+        }
+        
+        free(data);
+        free(buffer);
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        std::chrono::duration<double> elapsed_seconds = end-start;
+
+        log.AddLog("%s is rendered in %lf seconds\n", path, elapsed_seconds.count());
     }
 
     Renderer::~Renderer() {

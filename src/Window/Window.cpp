@@ -85,7 +85,7 @@ namespace fbmgen {
         glfwMakeContextCurrent(m_WindowPointer);
        
 
-        glfwSwapInterval(0);
+        glfwSwapInterval(1);
 
         m_Inited = true;
         return true;
@@ -94,7 +94,7 @@ namespace fbmgen {
     void Window::Update() {
         glfwSwapBuffers(m_WindowPointer);
         glfwPollEvents();
-        glfwWaitEvents();
+        //glfwWaitEvents();
     }
 
     Window::~Window() {
