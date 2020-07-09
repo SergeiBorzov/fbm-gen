@@ -144,75 +144,11 @@ namespace fbmgen {
         ImGui::Begin("Stats", NULL, window_flags);
             ImGui::Text("Platform: %s", renderer.GetPlatformName());
             ImGui::Text("Device: %s", renderer.GetDeviceName());
-            ImGui::Text("FPS: ");
+            ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
         ImGui::End();
     }
 
-    void Gui::Draw() {
-        auto& io = ImGui::GetIO(); (void)io;
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        if ((Input::GetKey(KeyCode::LeftCtrl) || Input::GetKey(KeyCode::RightCtrl)) && Input::GetKey(KeyCode::O)) {
-            if (!m_FileExplorerLoadConfig.IsOpened()) {
-                m_FileExplorerLoadConfig.Open();
-            }
-        }
-
-        if ((Input::GetKey(KeyCode::LeftCtrl) || Input::GetKey(KeyCode::RightCtrl)) && Input::GetKey(KeyCode::S)) {
-            if (!m_FileExplorerSaveConfig.IsOpened()) {
-                m_FileExplorerSaveConfig.Open();
-            }
-        }
-
-        if (Input::GetKeyDown(KeyCode::F5)) {
-            if (!m_RenderSettingsVisible) {
-                m_RenderSettingsVisible = true;
-                auto& window = m_App->GetWindow();
-                s32 width;
-                s32 height;
-                window.GetSize(&width, &height);
-                ImGui::SetNextWindowPos(ImVec2(width*0.5f, height*0.5f));
-            }
-        }
-        
-        MenuBar();
-        Preview();
-        Log();
-        Stats();
-
-        SaveConfig();
-        LoadConfig();
-        RenderSettings();
-        RenderImage();
-
-        
-        ImGui::ShowDemoWindow();
-
-        /* Shortcuts */
-        
-        
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    }
-
-    Gui::~Gui() {
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-    }
-
-    void Gui::LoadConfig() {
-        m_FileExplorerLoadConfig.Display();
-        
-        if(m_FileExplorerLoadConfig.HasSelected())
-        {
-            fprintf(stderr, "%s\n", m_FileExplorerLoadConfig.GetSelected().string().c_str());
-            m_FileExplorerLoadConfig.ClearSelected();
-            m_FileExplorerLoadConfig.Close();
-        }
-    }   
+   
 
     void Gui::SaveConfig() {
         m_FileExplorerSaveConfig.Display();
@@ -302,4 +238,70 @@ namespace fbmgen {
             m_FileExplorerRender.Close();
         }
     }
+
+     void Gui::Draw() {
+        auto& io = ImGui::GetIO(); (void)io;
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        if ((Input::GetKey(KeyCode::LeftCtrl) || Input::GetKey(KeyCode::RightCtrl)) && Input::GetKey(KeyCode::O)) {
+            if (!m_FileExplorerLoadConfig.IsOpened()) {
+                m_FileExplorerLoadConfig.Open();
+            }
+        }
+
+        if ((Input::GetKey(KeyCode::LeftCtrl) || Input::GetKey(KeyCode::RightCtrl)) && Input::GetKey(KeyCode::S)) {
+            if (!m_FileExplorerSaveConfig.IsOpened()) {
+                m_FileExplorerSaveConfig.Open();
+            }
+        }
+
+        if (Input::GetKeyDown(KeyCode::F5)) {
+            if (!m_RenderSettingsVisible) {
+                m_RenderSettingsVisible = true;
+                auto& window = m_App->GetWindow();
+                s32 width;
+                s32 height;
+                window.GetSize(&width, &height);
+                ImGui::SetNextWindowPos(ImVec2(width*0.5f, height*0.5f));
+            }
+        }
+        
+        MenuBar();
+        Preview();
+        Log();
+        Stats();
+
+        SaveConfig();
+        LoadConfig();
+        RenderSettings();
+        RenderImage();
+
+        
+        ImGui::ShowDemoWindow();
+
+        /* Shortcuts */
+        
+        
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+
+    Gui::~Gui() {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
+
+    void Gui::LoadConfig() {
+        m_FileExplorerLoadConfig.Display();
+        
+        if(m_FileExplorerLoadConfig.HasSelected())
+        {
+            fprintf(stderr, "%s\n", m_FileExplorerLoadConfig.GetSelected().string().c_str());
+            m_FileExplorerLoadConfig.ClearSelected();
+            m_FileExplorerLoadConfig.Close();
+        }
+    }   
 }

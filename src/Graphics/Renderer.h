@@ -8,10 +8,18 @@
 #include "../Core/types.h"
 #include "ImageExtension.h"
 #include "Texture.h"
+#include "Camera.h"
 
 namespace fbmgen {
 
     class Application;
+
+    struct CameraInfo {
+        cl_float3 position;
+        cl_float3 right;
+        cl_float3 up;
+        cl_float3 front;
+    };
 
     class Renderer {
     public:
@@ -22,26 +30,29 @@ namespace fbmgen {
         bool Create(Application* app);
         void Draw();
 
+        inline void SetCamera(Camera* camera) { m_Camera = camera; }
+
         void RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality = 100);
 
         ~Renderer();
     private:
         Application* m_App = nullptr;
-        Texture* m_Texture = NULL;
-
+        Texture* m_Texture = nullptr;
+        Camera* m_Camera = nullptr;
 
         
+        /* OpenCL stuff */
         char* platform_name = NULL;
         char* device_name = NULL;
 
-        
         cl_platform_id platform_id = 0;
         cl_device_id device_id = 0;
         cl_context context = 0;
         cl_program warp_program = 0;
         cl_kernel kernel = 0;
         cl_command_queue command_queue = 0;
-
         cl_mem image_object = 0;
+        cl_mem camera_buffer = 0;
+        /* End of OpenCL stuff */
     };
 }

@@ -49,7 +49,7 @@ target_include_directories(fbm-gen PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
 
 target_link_libraries(fbm-gen PRIVATE ${OPENGL_LIBRARIES} ${OPENCL_LIBRARIES} GLEW::GLEW glfw glm OpenCL::OpenCL cjson)
 
-add_custom_command(TARGET fbm-gen PRE_BUILD
+add_custom_command(TARGET fbm-gen POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                    ${CMAKE_SOURCE_DIR}/data $<TARGET_FILE_DIR:fbm-gen>)
 

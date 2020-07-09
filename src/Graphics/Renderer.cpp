@@ -1,12 +1,12 @@
 #include <windows.h>
 
 
-#include <chrono>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
 #include "../Core/fbmgen_gl.h"
+#include "../Core/Timer.h"
 #include "../Core/utils.h"
 
 #include "ImageExtension.h"
@@ -100,8 +100,13 @@ namespace fbmgen {
 
 
         char path_to_program[MAX_PATH];
+        char compiler_options[256] = {'\0'};
         GetAbsolutePath(path_to_program, MAX_PATH);
-        strncat(path_to_program, "resources/kernel/warp.cl", MAX_PATH - strlen(path_to_program) - 1);
+
+        strncat(compiler_options, "-Werror -I ", 256 - strlen(compiler_options) - 1);
+        strncat(compiler_options, path_to_program, 256 - strlen(compiler_options) - 1);
+        strncat(compiler_options, "resources/kernel", 256 - strlen(compiler_options) - 1);
+        strncat(path_to_program, "resources/kernel/terrain.cl", MAX_PATH - strlen(path_to_program) - 1);
 
         if (!ReadFileToString(path_to_program, &source_string, &source_string_size)) {
             return false;
@@ -116,7 +121,7 @@ namespace fbmgen {
             return false;
         }
        
-        const char* options = "-Werror";
+        const char* options = compiler_options;
         if (clBuildProgram(warp_program, 1, &device_id, options, NULL, NULL) != CL_SUCCESS) {
             fprintf(stderr, "Failed to compile kernel!\n");
 
@@ -174,21 +179,41 @@ namespace fbmgen {
         
         if (clEnqueueAcquireGLObjects(command_queue, 1, &image_object, 0, NULL, NULL) != CL_SUCCESS) {
             fprintf(stderr, "Error Enquering GL Objects!\n");
+            exit(EXIT_FAILURE);
         }
+
+        glm::vec3 right = m_Camera->GetRight();
+        glm::vec3 up = m_Camera->GetUp();
+        glm::vec3 front = m_Camera->GetFront();
+        glm::vec3 pos = m_Camera->position;
+
+        CameraInfo cameraInfo;
+        cameraInfo.position = {{pos.x, pos.y, pos.z}};
+        cameraInfo.right = {{right.x, right.y, right.z}};
+        cameraInfo.up = {{up.x, up.y, up.z}};
+        cameraInfo.front = {{front.x, front.y, front.z}};
 
         size_t global_work_size[] = {(size_t)m_Texture->GetWidth(), (size_t)m_Texture->GetHeight()};
 
         if (clSetKernelArg(kernel, 0, sizeof(cl_mem), &image_object) != CL_SUCCESS) {
             fprintf(stderr, "Error setting kernel argument!\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (clSetKernelArg(kernel, 1, sizeof(CameraInfo), &cameraInfo) != CL_SUCCESS) {
+            fprintf(stderr, "Error setting kernel argument!\n");
+            exit(EXIT_FAILURE);
         }
 
         //fprintf(stderr, "Size %d, %u\n",  m_Texture->GetWidth(), global_work_size[1]);
         if (clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL) != CL_SUCCESS) {
             fprintf(stderr, "Error running kernel!\n");
+            exit(EXIT_FAILURE);
         }
 
         if (clEnqueueReleaseGLObjects(command_queue, 1, &image_object, 0, NULL, NULL) != CL_SUCCESS) {
             fprintf(stderr, "Error releasing GL Objects!\n");
+            exit(EXIT_FAILURE);
         }
         clFinish(command_queue);
     }
@@ -196,7 +221,8 @@ namespace fbmgen {
     void Renderer::RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality) {
         auto& log = m_App->GetLog();
 
-        auto start = std::chrono::high_resolution_clock::now();
+        Timer timer;
+        timer.Run();
 
         /* Create image object */
         cl_mem output_image = 0;
@@ -218,9 +244,26 @@ namespace fbmgen {
             return;
         }
 
+        glm::vec3 right = m_Camera->GetRight();
+        glm::vec3 up = m_Camera->GetUp();
+        glm::vec3 front = m_Camera->GetFront();
+        glm::vec3 pos = m_Camera->position;
+
+        CameraInfo cameraInfo;
+        cameraInfo.position = {{pos.x, pos.y, pos.z}};
+        cameraInfo.right = {{right.x, right.y, right.z}};
+        cameraInfo.up = {{up.x, up.y, up.z}};
+        cameraInfo.front = {{front.x, front.y, front.z}};
+
         /* Run kernel */
         if (clSetKernelArg(kernel, 0, sizeof(cl_mem), &output_image) != CL_SUCCESS) {
             fprintf(stderr, "Error setting kernel argument!\n");
+            return;
+        }
+
+        if (clSetKernelArg(kernel, 1, sizeof(CameraInfo), &cameraInfo) != CL_SUCCESS) {
+            fprintf(stderr, "Error setting kernel argument!\n");
+            return;
         }
 
         size_t global_work_size[] = {(size_t)width, (size_t)height};
@@ -272,15 +315,13 @@ namespace fbmgen {
         free(data);
         free(buffer);
 
-        auto end = std::chrono::high_resolution_clock::now();
+        timer.Stop();
 
-        std::chrono::duration<double> elapsed_seconds = end-start;
-
-        log.AddLog("%s is rendered in %lf seconds\n", path, elapsed_seconds.count());
+        log.AddLog("%s is rendered in %lf seconds\n", path, timer.GetTimeS());
     }
 
     Renderer::~Renderer() {
-        
+
         if (image_object) {
             clReleaseMemObject(image_object);
         }

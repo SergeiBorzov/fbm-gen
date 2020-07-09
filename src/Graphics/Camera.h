@@ -1,37 +1,37 @@
 #pragma once
 
+#include "../Core/types.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace Fly {
+namespace fbmgen {
+
     class Camera {
     public:
-        glm::mat4 GetView() { return m_View;}
-        glm::mat4 GetProjection() { return m_Projection; }
-    protected:
-        Camera(){}
-
-        glm::mat4 m_Projection = glm::mat4(1.0f);
-        glm::mat4 m_View = glm::mat4(1.0f);
-        glm::vec3 m_Position = {0.0f, 0.0f, 0.0f};       
-    };
-
-    class OrthoCamera: public Camera {
-    public:
-        OrthoCamera(float left, float right, 
-                    float top, float bottom,
-                    float near, float far);
-
-        inline void SetPosition(const glm::vec3& position) { m_Position = position; }
+        inline glm::vec3 GetRight() const { return m_Right; }
+        inline glm::vec3 GetUp() const { return m_Up; }
+        inline glm::vec3 GetFront() const { return m_Front; }
+        glm::vec3 position = {0.0f, 0.0f, 3.0f};
+        f32 speed = 5.0f;
+        f32 sensitivity = 2.0f;
         
-        inline glm::vec3 GetPosition() const { return m_Position; }
+        void Start();
+        void Update(float dt);
     private:
-        float m_Left;
-        float m_Right;
-        float m_Top;
-        float m_Bottom;
-        float m_Near;
-        float m_Far;
+        glm::vec3 m_Right = {0.0f, 0.0f, 1.0f};
+        glm::vec3 m_Up = {0.0f, 1.0f, 0.0f};
+        glm::vec3 m_Front = {0.0f, 0.0f, -1.0f};
+        
+        f32 m_Yaw = -90.0f;
+        f32 m_Pitch = 0.0f;
+
+        bool m_Init = false;
+
+        f64 m_CurrentCursorX;
+        f64 m_CurrentCursorY;
+        f64 m_LastCursorX;
+        f64 m_LastCursorY;
     };
 
 }

@@ -94,7 +94,6 @@ namespace fbmgen {
     void Window::Update() {
         glfwSwapBuffers(m_WindowPointer);
         glfwPollEvents();
-        //glfwWaitEvents();
     }
 
     Window::~Window() {
