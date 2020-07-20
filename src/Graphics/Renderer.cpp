@@ -195,7 +195,8 @@ namespace fbmgen {
         s32 height =  m_Texture->GetHeight();
 
         Parameters parameters;
-        parameters.resolution = {{(f32)width, (f32)height}};
+        parameters.sun_direction = {{m_SunDirection.x, m_SunDirection.y, m_SunDirection.z}};
+        parameters.resolution = {{(f32)width, (f32)height, 0.0f}};
 
         size_t global_work_size[] = {(size_t)width, (size_t)height};
 
@@ -206,6 +207,9 @@ namespace fbmgen {
         assert(err == CL_SUCCESS);
 
         err = clSetKernelArg(kernel, 2, sizeof(Parameters), &parameters);
+        if (err == CL_INVALID_ARG_SIZE) {
+            printf("Great!\n");
+        }
         assert(err == CL_SUCCESS);
 
         err = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL);
@@ -250,16 +254,24 @@ namespace fbmgen {
         cameraInfo.up = {{up.x, up.y, up.z}};
         cameraInfo.front = {{front.x, front.y, front.z}};
 
+        Parameters parameters;
+        parameters.sun_direction = {{m_SunDirection.x, m_SunDirection.y, m_SunDirection.z}};
+        parameters.resolution = {{(f32)width, (f32)height, 0.0f}};
+
+
         /* Run kernel */
         auto err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &output_image);
         assert(err == CL_SUCCESS);
 
         err = clSetKernelArg(kernel, 1, sizeof(CameraInfo), &cameraInfo);
-        assert(err);
+        assert(err == CL_SUCCESS);
+
+        err = clSetKernelArg(kernel, 2, sizeof(Parameters), &parameters);
+        assert(err == CL_SUCCESS);
 
         size_t global_work_size[] = {(size_t)width, (size_t)height};
         err = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL);
-        assert(err);
+        assert(err == CL_SUCCESS);
         clFinish(command_queue);
 
         /* Write result to file */

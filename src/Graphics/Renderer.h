@@ -21,8 +21,9 @@ namespace fbmgen {
         cl_float3 front;
     };
 
-    struct Parameters {
-        cl_float2 resolution;
+    struct  Parameters {
+        cl_float3 sun_direction;
+        cl_float3 resolution;
     };
 
     class Renderer {
@@ -38,12 +39,18 @@ namespace fbmgen {
 
         void RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality = 100);
 
+        inline void SetSunDirection(const glm::vec3& dir) { m_SunDirection = dir; }
+
         ~Renderer();
     private:
         Application* m_App = nullptr;
         Texture* m_Texture = nullptr;
         Camera* m_Camera = nullptr;
 
+        /* Parameters stuff */
+        glm::vec3 m_SunDirection = glm::vec3(0.0f, 1.0f, 0.0f);
+
+        /* End of Parameters stuff */
         
         /* OpenCL stuff */
         char* platform_name = NULL;

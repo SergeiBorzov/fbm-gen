@@ -30,6 +30,11 @@ Ray CreateRay(Camera* cam, float2 resolution, float2 pixel_coord) {
     return ray;
 }
 
+// Normal through gradient
+float3 Normal(float3 p) {
+    return normalize(p);
+}
+
 bool RayMarch(Ray ray, float* depth) {
     float currentDepth = 0.0f;
     float currentDistance = 0.0f;
