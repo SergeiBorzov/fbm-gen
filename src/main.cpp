@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include "Core/Application.h"
 
 int main() {

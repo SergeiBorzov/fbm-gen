@@ -10,10 +10,12 @@
 namespace fbmgen {
 
     class Application;
+    class Camera;
 
     class Gui {
     public:
         bool Create(Application* app);
+        inline void SetCamera(Camera* camera) { m_Camera = camera; }
         void Draw();
 
         ~Gui();
@@ -38,6 +40,10 @@ namespace fbmgen {
         ImageExtension output_extension = ImageExtension::Png;
 
         Application* m_App = nullptr;
+
+        Camera* m_Camera = nullptr;
+        bool m_UpdateCamera = false;
+        
         bool m_RenderSettingsVisible = false;
         bool m_ExportImage = false;
 

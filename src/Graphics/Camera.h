@@ -14,11 +14,13 @@ namespace fbmgen {
         inline glm::vec3 GetFront() const { return m_Front; }
         glm::vec3 position = {0.0f, 0.0f, 3.0f};
         f32 speed = 5.0f;
-        f32 sensitivity = 2.0f;
+        f32 sensitivity = 0.1f;
         
-        void Start();
+        inline void Reset() { m_Init = false; }
         void Update(float dt);
     private:
+        void Start();
+
         glm::vec3 m_Right = {0.0f, 0.0f, 1.0f};
         glm::vec3 m_Up = {0.0f, 1.0f, 0.0f};
         glm::vec3 m_Front = {0.0f, 0.0f, -1.0f};

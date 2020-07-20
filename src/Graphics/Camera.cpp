@@ -5,21 +5,25 @@
 namespace fbmgen {
 
     void Camera::Start() {
-        m_CurrentCursorX = Input::GetCursorX();
-        m_CurrentCursorY = Input::GetCursorY();
-        m_LastCursorX = m_CurrentCursorX;
-        m_LastCursorY = m_CurrentCursorY;
+        m_LastCursorX = Input::GetCursorX();
+        m_LastCursorY = Input::GetCursorY();
     }
 
     void Camera::Update(float dt) {
+        if (!m_Init) {
+            Start();
+            m_Init = true;
+        }
+        m_CurrentCursorX = Input::GetCursorX();
+        m_CurrentCursorY = Input::GetCursorY();
         f64 deltaX = (m_CurrentCursorX - m_LastCursorX) * sensitivity;
-        f64 deltaY = (m_CurrentCursorY - m_LastCursorY) * sensitivity;
+        f64 deltaY = (m_LastCursorY - m_CurrentCursorY) * sensitivity;
 
         m_LastCursorX = m_CurrentCursorX;
         m_LastCursorY = m_CurrentCursorY;
 
-        m_Yaw += deltaX;
-        m_Pitch += deltaY;
+        m_Yaw += (f32)deltaX;
+        m_Pitch += (f32)deltaY;
 
         if (m_Pitch > 89.0f) {
             m_Pitch = 89.0f;
@@ -38,6 +42,7 @@ namespace fbmgen {
         m_Right = glm::normalize(glm::cross(m_Front, {0.0f, 1.0f, 0.0f}));
         m_Up = glm::normalize(glm::cross(m_Right, m_Front));
 
+        //printf("m_Right: %f, %f, %f\n", m_Right.x, m_Right.y, m_Right.z);
         if (Input::GetKey(KeyCode::A)) {
             position -= m_Right*speed*dt;
         }

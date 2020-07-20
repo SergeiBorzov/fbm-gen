@@ -99,8 +99,6 @@ namespace fbmgen {
 	    ImGui::SetNextWindowSize(previewSize);
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
 	    ImGui::Begin("Preview", NULL, window_flags);
-
-
         const Texture* texture = renderer.GetTexture();
         float offset = 0.5f*(previewSize.y - previewSize.x * 10 / 16);
 
@@ -108,6 +106,17 @@ namespace fbmgen {
         ImGui::Image((void*)(intptr_t)texture->GetHandle(), 
             ImVec2(previewSize.x, previewSize.x * 10 / 16),
 		    ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+            m_App->GetWindow().HideCursor();
+            m_UpdateCamera = true;
+        }
+        if (m_UpdateCamera && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
+            m_App->GetWindow().ShowCursor();
+            m_Camera->Reset();
+            m_UpdateCamera = false;
+        }
+
 	    ImGui::End();
     }
 
@@ -241,6 +250,9 @@ namespace fbmgen {
 
      void Gui::Draw() {
         auto& io = ImGui::GetIO(); (void)io;
+        if (m_UpdateCamera)
+            m_Camera->Update(io.DeltaTime);
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();

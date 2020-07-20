@@ -42,6 +42,14 @@ namespace fbmgen {
         data->height = height;
     }
 
+    void Window::ShowCursor() {
+        glfwSetInputMode(m_WindowPointer, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
+    void Window::HideCursor() {
+        glfwSetInputMode(m_WindowPointer, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+
     bool Window::Create() {
 
         /* GLFW initialization */

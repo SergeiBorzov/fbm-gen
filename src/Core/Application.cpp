@@ -1,8 +1,5 @@
 #include <cstdio>
-#include <cmath>
-#include <chrono>
 
-#include "../Core/Timer.h"
 #include "Application.h"
 #include "../Input/Input.h"
 
@@ -38,16 +35,11 @@ namespace fbmgen {
         m_Window->GetSize(&width, &height);
         Camera* mainCamera = new Camera();
         m_Renderer->SetCamera(mainCamera);
-        mainCamera->Start();
+        m_Gui->SetCamera(mainCamera);
 
-        Timer timer;
-        timer.Run();
         while(!m_Window->ShouldClose()) {
-            f32 dt = (f32)timer.GetTimeS();
-            timer.Reset();
             Input::Update();
             m_Window->Update();
-            mainCamera->Update(dt);
             m_Renderer->Draw();
             m_Gui->Draw();
         }

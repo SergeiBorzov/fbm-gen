@@ -21,6 +21,10 @@ namespace fbmgen {
         cl_float3 front;
     };
 
+    struct Parameters {
+        cl_float2 resolution;
+    };
+
     class Renderer {
     public:
         inline const Texture* GetTexture() const { return m_Texture; }

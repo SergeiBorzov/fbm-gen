@@ -24,6 +24,9 @@ namespace fbmgen {
         bool ShouldClose() const { return glfwWindowShouldClose(m_WindowPointer); }
         void Close() { glfwSetWindowShouldClose(m_WindowPointer, true); }
 
+        void HideCursor();
+        void ShowCursor();
+        
         bool Create();
         void Update();
         ~Window();

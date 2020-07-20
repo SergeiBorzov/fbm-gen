@@ -177,10 +177,8 @@ namespace fbmgen {
         glFinish();
 
         
-        if (clEnqueueAcquireGLObjects(command_queue, 1, &image_object, 0, NULL, NULL) != CL_SUCCESS) {
-            fprintf(stderr, "Error Enquering GL Objects!\n");
-            exit(EXIT_FAILURE);
-        }
+        auto err = clEnqueueAcquireGLObjects(command_queue, 1, &image_object, 0, NULL, NULL);
+        assert(err == CL_SUCCESS);
 
         glm::vec3 right = m_Camera->GetRight();
         glm::vec3 up = m_Camera->GetUp();
@@ -193,28 +191,29 @@ namespace fbmgen {
         cameraInfo.up = {{up.x, up.y, up.z}};
         cameraInfo.front = {{front.x, front.y, front.z}};
 
-        size_t global_work_size[] = {(size_t)m_Texture->GetWidth(), (size_t)m_Texture->GetHeight()};
+        s32 width = m_Texture->GetWidth();
+        s32 height =  m_Texture->GetHeight();
 
-        if (clSetKernelArg(kernel, 0, sizeof(cl_mem), &image_object) != CL_SUCCESS) {
-            fprintf(stderr, "Error setting kernel argument!\n");
-            exit(EXIT_FAILURE);
-        }
+        Parameters parameters;
+        parameters.resolution = {{(f32)width, (f32)height}};
 
-        if (clSetKernelArg(kernel, 1, sizeof(CameraInfo), &cameraInfo) != CL_SUCCESS) {
-            fprintf(stderr, "Error setting kernel argument!\n");
-            exit(EXIT_FAILURE);
-        }
+        size_t global_work_size[] = {(size_t)width, (size_t)height};
 
-        //fprintf(stderr, "Size %d, %u\n",  m_Texture->GetWidth(), global_work_size[1]);
-        if (clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL) != CL_SUCCESS) {
-            fprintf(stderr, "Error running kernel!\n");
-            exit(EXIT_FAILURE);
-        }
+        err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &image_object);
+        assert(err == CL_SUCCESS);
 
-        if (clEnqueueReleaseGLObjects(command_queue, 1, &image_object, 0, NULL, NULL) != CL_SUCCESS) {
-            fprintf(stderr, "Error releasing GL Objects!\n");
-            exit(EXIT_FAILURE);
-        }
+        err = clSetKernelArg(kernel, 1, sizeof(CameraInfo), &cameraInfo);
+        assert(err == CL_SUCCESS);
+
+        err = clSetKernelArg(kernel, 2, sizeof(Parameters), &parameters);
+        assert(err == CL_SUCCESS);
+
+        err = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL);
+        assert(err == CL_SUCCESS);
+
+        err = clEnqueueReleaseGLObjects(command_queue, 1, &image_object, 0, NULL, NULL);
+        assert(err == CL_SUCCESS);
+
         clFinish(command_queue);
     }
 
@@ -238,11 +237,7 @@ namespace fbmgen {
         desc.num_samples = 0;
 
         output_image = clCreateImage(context, CL_MEM_WRITE_ONLY, format, &desc, NULL, NULL);
-
-        if (!output_image) {
-            fprintf(stderr, "Failed to create OpenCL image!\n");
-            return;
-        }
+        assert(output_image);
 
         glm::vec3 right = m_Camera->GetRight();
         glm::vec3 up = m_Camera->GetUp();
@@ -256,22 +251,15 @@ namespace fbmgen {
         cameraInfo.front = {{front.x, front.y, front.z}};
 
         /* Run kernel */
-        if (clSetKernelArg(kernel, 0, sizeof(cl_mem), &output_image) != CL_SUCCESS) {
-            fprintf(stderr, "Error setting kernel argument!\n");
-            return;
-        }
+        auto err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &output_image);
+        assert(err == CL_SUCCESS);
 
-        if (clSetKernelArg(kernel, 1, sizeof(CameraInfo), &cameraInfo) != CL_SUCCESS) {
-            fprintf(stderr, "Error setting kernel argument!\n");
-            return;
-        }
+        err = clSetKernelArg(kernel, 1, sizeof(CameraInfo), &cameraInfo);
+        assert(err);
 
         size_t global_work_size[] = {(size_t)width, (size_t)height};
-        if (clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL) != CL_SUCCESS) {
-            fprintf(stderr, "Failed to render result!\n");
-            return;
-        }
-
+        err = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, global_work_size, NULL, 0, NULL, NULL);
+        assert(err);
         clFinish(command_queue);
 
         /* Write result to file */
@@ -282,10 +270,8 @@ namespace fbmgen {
         
         size_t origin[] = {0, 0, 0};
         size_t region[] = {(size_t)width, (size_t)height, 1};
-        if (clEnqueueReadImage(command_queue, output_image, CL_TRUE, origin, region, 0, 0, data, 0, NULL, NULL) != CL_SUCCESS) {
-            fprintf(stderr, "Failed to read image from OpenCL!\n");
-            return;
-        }
+        err = clEnqueueReadImage(command_queue, output_image, CL_TRUE, origin, region, 0, 0, data, 0, NULL, NULL);
+        assert(err == CL_SUCCESS);
 
         for (int j = 0; j < height; j++) {
 		    for (int i = 0; i < width; i++) {
