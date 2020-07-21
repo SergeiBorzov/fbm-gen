@@ -35,6 +35,19 @@ float3 Normal(float3 p) {
     return normalize(p);
 }
 
+
+bool RaySphereIntersect(Ray ray, float sphereRadius, float* t0) {
+    float a = dot(ray.direction, ray.direction);
+    float3 d = ray.origin;
+    float b = 2.0f * dot(ray.direction, d);
+    float c = dot(d, d) - (sphereRadius * sphereRadius);
+    if (b*b - 4.0f*a*c < 0.0f) {
+        return false;
+    }
+    *t0 = (-b + sqrt((b*b) - 4.0*a*c))/(2.0*a);
+    return true;    
+}
+
 bool RayMarch(Ray ray, float* depth) {
     float currentDepth = 0.0f;
     float currentDistance = 0.0f;
