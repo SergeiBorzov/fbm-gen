@@ -1,8 +1,8 @@
 #include <cstdio>
 
-#include "Application.h"
 #include "../Input/Input.h"
-
+#include "../Graphics/Camera.h"
+#include "Application.h"
 
 namespace fbmgen {
 
@@ -34,6 +34,9 @@ namespace fbmgen {
         s32 width, height;
         m_Window->GetSize(&width, &height);
         Camera* mainCamera = new Camera();
+        mainCamera->position = glm::vec3(0.0f, 1.0f, 15.0f);
+        mainCamera->Update(0.0f);
+        mainCamera->Reset();
         m_Renderer->SetCamera(mainCamera);
         m_Gui->SetCamera(mainCamera);
 

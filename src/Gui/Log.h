@@ -8,7 +8,6 @@ namespace fbmgen {
         bool scroll_to_bottom;
 
         void Clear();
-        void ClearLine();
         void AddLog(const char* fmt, ...);
     };
 }

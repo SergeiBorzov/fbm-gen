@@ -37,10 +37,10 @@ namespace fbmgen {
         front.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
         front.y = sin(glm::radians(m_Pitch));
         front.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
-        m_Front = glm::normalize(front);
+        m_Forward = glm::normalize(front);
 
-        m_Right = glm::normalize(glm::cross(m_Front, {0.0f, 1.0f, 0.0f}));
-        m_Up = glm::normalize(glm::cross(m_Right, m_Front));
+        m_Right = glm::normalize(glm::cross(m_Forward, {0.0f, 1.0f, 0.0f}));
+        m_Up = glm::normalize(glm::cross(m_Right, m_Forward));
 
         //printf("m_Right: %f, %f, %f\n", m_Right.x, m_Right.y, m_Right.z);
         if (Input::GetKey(KeyCode::A)) {
@@ -51,10 +51,10 @@ namespace fbmgen {
         }
 
         if (Input::GetKey(KeyCode::W)) {
-            position += m_Front*speed*dt;
+            position += m_Forward*speed*dt;
         }
         else if (Input::GetKey(KeyCode::S)) {
-            position -= m_Front*speed*dt;
+            position -= m_Forward*speed*dt;
         }
 
         if (Input::GetKey(KeyCode::Space)) {

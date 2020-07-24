@@ -56,7 +56,7 @@ namespace fbmgen {
         if (last) {
             size_t len = (size_t) (last - path_exe + 1);
             if (len + 1 > buffer_size) {
-                fprintf(stderr, "Buffer is too small for absolute path");
+                fprintf(stderr, "Buffer is too small for absolute path\n");
                 return false;
             }
             strncpy(buffer, path_exe, len);

@@ -1,12 +1,12 @@
 #pragma once
 
+#include <glm/glm.hpp>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 #include <GL/glew.h>
 #define GLEW_STATIC
 
-
 #include "../Core/types.h"
-
-#include <GLFW/glfw3.h>
 
 namespace fbmgen {
 

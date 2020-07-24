@@ -1,12 +1,13 @@
+#include <memory>
 #include "Core/Application.h"
 
 int main() {
-    fbmgen::Application app;
+    std::unique_ptr<fbmgen::Application> app = std::make_unique<fbmgen::Application>();
 
-    if (!app.Create()) {
+    if (!app->Create()) {
         exit(EXIT_FAILURE);
     }
 
-    app.Run();
+    app->Run();
     return 0;
 }

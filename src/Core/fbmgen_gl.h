@@ -7,14 +7,17 @@
 #include <GL/glew.h>
 #define GLEW_STATIC
 
-#define DEBUG_GL
+#define DEBUG
 
-#ifdef DEBUG_GL
-#define GLCall(x) GLClearError();\
-    x;\
-    assert(GLLogCall());
+#ifdef DEBUG
+#define GLCALL(x)           \
+    do {                    \
+        GLClearError();     \
+        x;                  \
+        assert(GLLogCall());\
+    } while(0)
 #else
-    #define GLCall(x) x;
+    #define GLCALL(x) x;
 #endif
 
 static inline void GLClearError() {

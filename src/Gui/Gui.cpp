@@ -1,20 +1,17 @@
+#include <cstdio>
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
 #include "../Core/types.h"
 #include "../Core/Application.h"
-#include "../Graphics/ImageExtension.h"
-
 #include "../Input/Input.h"
-
-#include <cstdio>
-
-#include <thread>
+#include "../Graphics/Camera.h"
+#include "../Graphics/ImageExtension.h"
 
 namespace fbmgen {
     bool Gui::Create(Application* app) {
-        if (!app) {
+        if (app == nullptr) {
             return false;
         }
 
@@ -101,16 +98,30 @@ namespace fbmgen {
 	    ImGui::Begin("Preview", NULL, window_flags);
         const Texture* texture = renderer.GetTexture();
         float offset = 0.5f*(previewSize.y - previewSize.x * 10 / 16);
-
         ImGui::SetCursorPos(ImVec2(0.0f, offset));
         ImGui::Image((void*)(intptr_t)texture->GetHandle(), 
             ImVec2(previewSize.x, previewSize.x * 10 / 16),
 		    ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
 
+        bool itemHovered = ImGui::IsItemHovered() && ImGui::IsWindowHovered();
+        
+        ImVec2 rectSize = ImGui::GetItemRectSize();
+        m_PreviewSize = glm::ivec2(rectSize.x, rectSize.y);
+        if (itemHovered && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            ImVec2 windowSize = ImGui::GetWindowSize();
+            
+            ImVec2 borderSize = ImVec2(0.5f*(windowSize.x - rectSize.x), 0.5f*(windowSize.y - rectSize.y));
+            ImVec2 mousePos = ImGui::GetIO().MousePos;
+            ImVec2 imageCoords = ImVec2(mousePos.x + (int)borderSize.x - 4, mousePos.y - 18 - (int)borderSize.y);
+
+            renderer.SetSunPosition(glm::vec2(imageCoords.x, imageCoords.y), glm::vec2(rectSize.x, rectSize.y));
+        }
+
         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
             m_App->GetWindow().HideCursor();
             m_UpdateCamera = true;
         }
+
         if (m_UpdateCamera && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
             m_App->GetWindow().ShowCursor();
             m_Camera->Reset();
@@ -141,7 +152,7 @@ namespace fbmgen {
 
     void Gui::Stats() {
         auto& window = m_App->GetWindow();
-        auto& renderer = m_App->GetRenderer();
+        //auto& renderer = m_App->GetRenderer();
 
         
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
@@ -151,8 +162,6 @@ namespace fbmgen {
 
         ImGui::SetNextWindowPos(ImVec2((float)width*2/3, 18));
         ImGui::Begin("Stats", NULL, window_flags);
-            ImGui::Text("Platform: %s", renderer.GetPlatformName());
-            ImGui::Text("Device: %s", renderer.GetDeviceName());
             ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
         ImGui::End();
     }

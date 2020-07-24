@@ -64,19 +64,14 @@ namespace fbmgen {
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); 
         glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
         glfwWindowHint(GLFW_CENTER_CURSOR, GL_TRUE);
-        glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
         
-        //glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-
         // Mac OS support
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); 
+        //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); 
 
-        m_WindowPointer = glfwCreateWindow(
-                            m_WindowData.width, 
-                            m_WindowData.height,
-                            m_WindowData.title,
-                            NULL,
-                            NULL);
+        m_WindowPointer = glfwCreateWindow(m_WindowData.width,
+                                           m_WindowData.height,
+                                           m_WindowData.title,
+                                           NULL, NULL);
 
         if (!m_WindowPointer) {
             glfwTerminate();

@@ -14,7 +14,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 find_package(OpenGL REQUIRED)
-find_package(OpenCL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -47,7 +46,7 @@ target_include_directories(fbm-gen PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
                                           ${CMAKE_CURRENT_SOURCE_DIR}/src/Third_Party/ImGui
                                           ${CMAKE_CURRENT_SOURCE_DIR}/src/Third_Party/stb )
 
-target_link_libraries(fbm-gen PRIVATE ${OPENGL_LIBRARIES} ${OPENCL_LIBRARIES} GLEW::GLEW glfw glm OpenCL::OpenCL cjson)
+target_link_libraries(fbm-gen PRIVATE ${OPENGL_LIBRARIES} GLEW::GLEW glfw glm cjson)
 
 add_custom_command(TARGET fbm-gen POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory

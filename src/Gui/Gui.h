@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <glm/glm.hpp>
 #include <imgui.h>
 #include <imfilebrowser.h>
 
@@ -14,6 +14,7 @@ namespace fbmgen {
 
     class Gui {
     public:
+        inline glm::ivec2 GetPreviewSize() const { return m_PreviewSize; }
         bool Create(Application* app);
         inline void SetCamera(Camera* camera) { m_Camera = camera; }
         void Draw();
@@ -47,7 +48,7 @@ namespace fbmgen {
         bool m_RenderSettingsVisible = false;
         bool m_ExportImage = false;
 
-        float test[2];
+        glm::ivec2 m_PreviewSize;
         s32 output_width = 1920;
         s32 output_height = 1080;
         s32 output_quality = 100;

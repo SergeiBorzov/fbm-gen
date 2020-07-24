@@ -6,8 +6,6 @@ namespace fbmgen {
         buffer.clear();
     }
 
-
-
     void Log::AddLog(const char* fmt, ...) {
         va_list args;
         va_start(args, fmt);
