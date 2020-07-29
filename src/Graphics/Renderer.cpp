@@ -8,16 +8,12 @@
 #include "../Core/utils.h"
 #include "../Core/Application.h"
 #include "ImageExtension.h"
-// #include "Shader.h"
-// #include "Camera.h"
-// #include "Texture.h"
 
 namespace fbmgen {
 
     void Renderer::SetSunPosition(const glm::vec2& imageCoord, const glm::vec2& resolution) {
-
         glm::vec2 xy = imageCoord - resolution*0.5f;
-        float z = resolution.y / tan(glm::radians(45.0f) / 2.0f);
+        float z = resolution.y / tan(glm::radians(60.0f) / 2.0f);
         glm::vec3 direction = glm::normalize(xy.x * m_Camera->GetRight() - xy.y * m_Camera->GetUp() + z*m_Camera->GetFront());
         m_SunDirection = glm::normalize(direction);
     }
@@ -94,35 +90,18 @@ namespace fbmgen {
             return false;
         }
         GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-
-
-       /* char path_to_program[MAX_PATH];
-        char compiler_options[256] = {'\0'};
-       
-
-        strncat(compiler_options, "-Werror -I ", 256 - strlen(compiler_options) - 1);
-        strncat(compiler_options, path_to_program, 256 - strlen(compiler_options) - 1);
-        strncat(compiler_options, "resources/kernel", 256 - strlen(compiler_options) - 1);
-        strncat(path_to_program, "resources/kernel/terrain.cl", MAX_PATH - strlen(path_to_program) - 1);
-
-        if (!ReadFileToString(path_to_program, &source_string, &source_string_size)) {
-            return false;
-        }*/
-
         log.AddLog("Renderer inited sucessfully\n");
         return true;
     }
 
     void Renderer::Draw() {
+        GLCALL(glClear(GL_COLOR_BUFFER_BIT));
+        GLCALL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
         GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer));
         GLCALL(glClear(GL_COLOR_BUFFER_BIT));
         GLCALL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
 
-        glm::ivec2 previewSize = m_App->GetGui().GetPreviewSize();
-        GLCALL(glViewport(0.0f, 0.0f, previewSize.x, previewSize.y));
-
-        GLCALL(glClear(GL_COLOR_BUFFER_BIT));
-        GLCALL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+        GLCALL(glViewport(0, 0, m_Texture->GetWidth(),m_Texture->GetHeight()));
 
         m_Shader->Run();
         m_Shader->SetUniform("u_ViewMatrix", m_Camera->GetViewMatrix());
@@ -135,8 +114,6 @@ namespace fbmgen {
         GLCALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL));
 
         GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-        GLCALL(glClear(GL_COLOR_BUFFER_BIT));
-        GLCALL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
     }
 
     void Renderer::RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality) {
@@ -144,7 +121,50 @@ namespace fbmgen {
 
         Timer timer;
         timer.Run();
-        /* do stuff here */
+        
+        GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer));
+        s32 old_width = m_Texture->GetWidth();
+        s32 old_height = m_Texture->GetHeight();
+
+        m_Texture->Resize(width, height);
+        
+        GLCALL(glViewport(0, 0, width, height));
+        GLCALL(glClear(GL_COLOR_BUFFER_BIT));
+        GLCALL(glClearColor(0.0f, 0.0f, 0.0f, 1.0f));
+
+        m_Shader->Run();
+        m_Shader->SetUniform("u_ViewMatrix", m_Camera->GetViewMatrix());
+        m_Shader->SetUniform("u_SunDirection", m_SunDirection);
+        m_Shader->SetUniform("u_Resolution", glm::vec2(width, height));
+        m_Shader->SetUniform("u_SunIntensity", m_SunIntensity);
+
+        GLCALL(glBindVertexArray(m_VertexArray));
+        GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer));
+
+        GLCALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL));
+
+        u8* buffer = (u8*)malloc(sizeof(u8)*width*height*4);
+        GLCALL(glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer));
+        stbi_flip_vertically_on_write(true);
+        switch (extension) {
+            case ImageExtension::Png: {
+                stbi_write_png(path, width, height, 4, buffer, width * 4 * sizeof(u8));
+                break;
+            }
+            case ImageExtension::Bmp: {
+                stbi_write_bmp(path, width, height, 4, buffer);
+                break;
+            }
+            case ImageExtension::Jpeg: {
+                stbi_write_jpg(path, width, height, 4, buffer, quality);
+                break;
+            }
+        }
+
+        free(buffer);
+        m_Texture->Resize(old_width, old_height);
+        GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
         timer.Stop();
         log.AddLog("%s is rendered in %lf seconds\n", path, timer.GetTimeS());
     }

@@ -23,6 +23,7 @@ namespace fbmgen {
         void SetFilterMode(FilterMode mode);
 
         void Bind() const;
+        void Resize(s32 width, s32 height);
 
         ~Texture();
     private:

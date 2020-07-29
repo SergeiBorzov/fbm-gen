@@ -154,6 +154,48 @@ float RayMarching(Ray ray) {
     }
     return d < EPS*t ? t : -1.0f;
 }
+
+// Formulas from Inigo Quilez:
+// http://iquilezles.org/www/articles/rmshadows/rmshadows.htm
+float SoftShadow(Ray ray, float sharpness) {
+    const int iter = 15;
+    float length = 0.0f;
+    float shadow = 1.0f;
+    float previousDistance = 1e20;
+  
+    for (int i = 0; i < iter; i++) {
+        float d = SceneSDF(ray.origin + ray.direction*length);
+       
+        // Hard shadow
+        if (d < EPS) {
+            shadow = 0.0f; 
+            return shadow;
+        }
+
+        // Soft shadow
+        float y = d*d / (2.0f*previousDistance);
+        float t = sqrt(d*d - y*y);
+
+        shadow = min(shadow, sharpness*t / max(0.0f, length - y));
+        previousDistance = d;
+        length += d;
+        if (length > MAX_DISTANCE) break;
+    }
+    shadow = 3*shadow*shadow - 2*shadow*shadow*shadow;
+    return clamp(shadow, 0.0f, 1.0f);
+}
+
+float AmbientOcclusion(vec3 p, vec3 n) {
+    float step = 8.0f;
+    float ao = 0.0f;
+    float dist;
+    for (int i = 0; i < 3; i++) {
+        dist = step * float(i);
+		ao += max(0.0f, (dist - SceneSDF(p + n * dist)) / dist);  
+    }
+    return 1.0f - ao;
+}
+
 /*----------------------*/
 
 
@@ -271,10 +313,26 @@ void main() {
 
     vec3 color = vec3(0.0f);
     if (t > 0.0f) {
-        color = vec3(0.5f, 0.5f, 0.5f)*dot(Normal(ray.origin + ray.direction*t), u_SunDirection);
+        vec3 hit_point = ray.origin + t*ray.direction;
+        vec3 hit_normal = Normal(hit_point);
+        hit_point += hit_normal*100*EPS;
+
+        Ray shadowRay;
+        shadowRay.origin = hit_point;
+        shadowRay.direction = u_SunDirection;
+
+        float shadow = SoftShadow(shadowRay, 5.0f);
+        vec3 cshadow = pow(vec3(shadow), vec3(1.0f, 1.2f, 1.5f));
+
+        // First light - sky
+        color = cshadow*vec3(0.2f, 0.2f, 0.2f)*dot(hit_normal, u_SunDirection)*u_SunIntensity;
+        // Second light - sun
+        color += AmbientOcclusion(hit_point, hit_normal)*SkyColor(hit_normal)*2.0f;   
+        // Third light - Indirect approximation
+        color += vec3(0.2f, 0.2f, 0.2f)*dot(hit_normal, u_SunDirection*vec3(-1.0f, 0.0f, -1.0f))*0.3f;
     }
     else {
-        color = SkyColor(ray.direction) + SunColor(ray.direction, vec3(1.0f, 1.0f, 0.25f));
+        color = SkyColor(ray.direction) + SunColor(ray.direction, vec3(1.0f, 1.2f, 1.5f));
     }
 
     final_color = vec4(color, 1.0f);

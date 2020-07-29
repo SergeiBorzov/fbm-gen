@@ -25,6 +25,7 @@ namespace fbmgen {
         void Preview();
         void Log();
         void Stats();
+        void Sky();
         
         void LoadConfig();
         void SaveConfig();

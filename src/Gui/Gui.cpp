@@ -92,21 +92,25 @@ namespace fbmgen {
         s32 width, height;
         window.GetSize(&width, &height);
 
-        ImVec2 previewSize = ImVec2((float)width*2/3, (float) (height - 168));
+        float size_x = (float)width*2.0f/3.0f;
+        float size_y = (float)height - 168.0f;
+        ImVec2 previewSize = ImVec2(size_x, size_y);
+
 	    ImGui::SetNextWindowSize(previewSize);
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+                                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+                                        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollWithMouse;
 	    ImGui::Begin("Preview", NULL, window_flags);
         const Texture* texture = renderer.GetTexture();
-        float offset = 0.5f*(previewSize.y - previewSize.x * 10 / 16);
+        float offset = 0.5f*(previewSize.y - previewSize.x * 10.0f / 16.0f);
         ImGui::SetCursorPos(ImVec2(0.0f, offset));
         ImGui::Image((void*)(intptr_t)texture->GetHandle(), 
-            ImVec2(previewSize.x, previewSize.x * 10 / 16),
+            ImVec2(previewSize.x, previewSize.x* 10.0f / 16.0f),
 		    ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
 
         bool itemHovered = ImGui::IsItemHovered() && ImGui::IsWindowHovered();
         
         ImVec2 rectSize = ImGui::GetItemRectSize();
-        m_PreviewSize = glm::ivec2(rectSize.x, rectSize.y);
         if (itemHovered && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
             ImVec2 windowSize = ImGui::GetWindowSize();
             
@@ -152,18 +156,44 @@ namespace fbmgen {
 
     void Gui::Stats() {
         auto& window = m_App->GetWindow();
-        //auto& renderer = m_App->GetRenderer();
 
-        
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
        
         s32 width, height;
         window.GetSize(&width, &height);
 
         ImGui::SetNextWindowPos(ImVec2((float)width*2/3, 18));
+        ImGui::SetNextWindowSize(ImVec2(150, 80));
         ImGui::Begin("Stats", NULL, window_flags);
             ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
         ImGui::End();
+    }
+
+    void Gui::Sky() {
+        auto& window = m_App->GetWindow();
+        auto& renderer = m_App->GetRenderer();
+
+        s32 width, height;
+        window.GetSize(&width, &height);
+
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove;
+        ImGui::SetNextWindowPos(ImVec2((float)width*2/3, 98));
+        ImGui::Begin("Sky", NULL, window_flags);
+
+        glm::vec3 dir = renderer.GetSunDirection();
+        float sundir[3] = { dir.x, dir.y, dir.z }; 
+        if (ImGui::DragFloat3("Sun direction", sundir, 0.05f, -1.0f, 1.0f)) {
+            glm::vec3 result = {sundir[0], sundir[1], sundir[2]};
+            result = glm::normalize(result);
+            renderer.SetSunDirection(result);
+        }
+
+        glm::vec3 sun_color = renderer.GetSunColor();
+        float suncolor[3] = {sun_color.x, sun_color.y, sun_color.z};
+        ImGui::ColorEdit3("Sun Color", suncolor, ImGuiColorEditFlags_Float);
+        renderer.SetSunColor(glm::vec3(suncolor[0], suncolor[1], suncolor[2]));
+        ImGui::End();
+
     }
 
    
@@ -293,6 +323,7 @@ namespace fbmgen {
         Preview();
         Log();
         Stats();
+        Sky();
 
         SaveConfig();
         LoadConfig();

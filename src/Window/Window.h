@@ -40,7 +40,7 @@ namespace fbmgen {
         struct WindowData {
             const char* title = "fbm-gen";
             s32 width = 1280;
-            s32 height = 720;
+            s32 height = 800;
         };
 
         WindowData m_WindowData;

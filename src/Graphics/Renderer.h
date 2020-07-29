@@ -22,8 +22,12 @@ namespace fbmgen {
         inline void SetCamera(Camera* camera) { m_Camera = camera; }
 
         // Move to Controller
+        inline glm::vec3 GetSunDirection() const { return m_SunDirection; }
         inline void SetSunDirection(const glm::vec3& dir) { m_SunDirection = dir; }
         void SetSunPosition(const glm::vec2& imageCoord, const glm::vec2& resolution);
+
+        inline void SetSunColor(const glm::vec3& color) { m_SunColor = color; }
+        inline glm::vec3 GetSunColor() const { return m_SunColor; }
         //
 
         void RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality = 100);

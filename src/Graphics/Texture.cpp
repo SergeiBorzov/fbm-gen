@@ -137,6 +137,13 @@ namespace fbmgen {
         GLCALL(glBindTexture(GL_TEXTURE_2D, m_Handle));
     }
 
+    void Texture::Resize(s32 width, s32 height) {
+        Bind();
+        GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL));
+        m_Width = width;
+        m_Height = height;
+    }
+
     Texture::~Texture() {
         if (m_Handle) {
             GLCALL(glDeleteTextures(1, &m_Handle));
