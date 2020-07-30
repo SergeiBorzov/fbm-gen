@@ -27,11 +27,11 @@ in Data {
 #define M_PI 3.1415926535897932384f
 
 #define MAX_DISTANCE 28.0f
-#define MAX_ITER 256
+#define MAX_ITER 512
 #define EPS 0.002f
 
-#define SKY_SAMPLES_VIEW_RAY 4
-#define SKY_SAMPLES_LIGHT_RAY 4
+#define SKY_SAMPLES_VIEW_RAY 6
+#define SKY_SAMPLES_LIGHT_RAY 6
 #define BETA_R vec3(5.5e-6, 13.0e-6, 22.4e-6) // scattering coefficient sea level Rayleigh
 #define BETA_M vec3(21e-6) // scattering coefficient sea level Mie
 #define HEIGHT_SCALE_R 7994.0f
@@ -39,10 +39,17 @@ in Data {
 #define PLANET_RADIUS  6360e3
 #define PLANET_ATM_RADIUS 6420e3 //planet + atmosphere radius
 
-uniform mat4 u_ViewMatrix;
-uniform vec3 u_SunDirection;
+
 uniform vec2 u_Resolution;
+uniform mat4 u_ViewMatrix;
+
+uniform vec3 u_SunDirection;
+uniform vec3 u_SunColor;
 uniform float u_SunIntensity;
+uniform float u_SunSize;
+
+uniform float u_FbmScale;
+uniform int u_FbmOctaves;
 /*----------------------*/
 
 /*----------------------*/
@@ -69,7 +76,8 @@ float Random(vec2 p){
     return fract(sin(dot(p.xy , vec2(12.9898f,78.233f))) * 43758.5453f);
 }
 
-#define QUINTIC_POLYNOMIAL
+#define CUBIC_POLYNOMIAL
+#define USE_DERIVATIVES
 
 vec3 Noise(vec2 p) {
     vec2 i = floor(p); // floor of p
@@ -106,13 +114,60 @@ vec3 Noise(vec2 p) {
     return vec3(-1.0f + 2.0f*n, 2.0f*du*vec2(b - a + k*f.y, c - a + k*f.x));
 }
 
+
+/*float terrainM( in vec2 x ) {
+	vec2  p = x*0.003/SC;
+    float a = 0.0;
+    float b = 1.0;
+	vec2  d = vec2(0.0);
+    for( int i=0; i<9; i++ )
+    {
+        vec3 n = noised(p);
+        d += n.yz;
+        a += b*n.x/(1.0+dot(d,d));
+		b *= 0.5;
+        p = m2*p*2.0;
+    }
+	return SC*120.0*a;
+}*/
+
+/* fbmM - for ray marching */
+/* fbmH - for computing normal */
+
 float fbmM(vec2 p) {
+    vec2 scaled_p = p*u_FbmScale;
     float f = 0.0f, w = 0.5f;
-    
-    for (int i = 0; i < 16; ++i) {
-        vec3 n = Noise(p);
+#ifdef USE_DERIVATIVES
+    vec2  d = vec2(0.0);
+#endif
+    for (int i = 0; i < u_FbmOctaves; ++i) {
+        vec3 n = Noise(scaled_p);
+#ifdef USE_DERIVATIVES
+        d += n.yz;
+        f += w * n.x / (1.0f + dot(d, d));
+#else
         f += w * n.x;
-        w *= 0.5f; p *= 2.0f;
+#endif
+        w *= 0.5f; scaled_p *= 2.0f;
+    }
+    return f;
+}
+
+float fbmH(vec2 p) {
+    vec2 scaled_p = p*u_FbmScale;
+    float f = 0.0f, w = 0.5f;
+#ifdef USE_DERIVATIVES
+    vec2  d = vec2(0.0);
+#endif
+    for (int i = 0; i < u_FbmOctaves + 7; ++i) {
+        vec3 n = Noise(scaled_p);
+#ifdef USE_DERIVATIVES
+        d += n.yz;
+        f += w * n.x / (1.0f + dot(d, d));
+#else
+        f += w * n.x;
+#endif
+        w *= 0.5f; scaled_p *= 2.0f;
     }
     return f;
 }
@@ -123,9 +178,9 @@ float SceneSDF(vec3 p) {
 
 // Normal through gradient
 vec3 Normal(vec3 p) {
-    float x = fbmM(vec2(p.x - 0.001f, p.z)) - fbmM(vec2(p.x + 0.001f, p.z));
-    float y = 2.0f*EPS;
-    float z = fbmM(vec2(p.x, p.z - 0.001f)) - fbmM(vec2(p.x, p.z + 0.001f));
+    float x = fbmH(vec2(p.x - 0.001f, p.z)) - fbmH(vec2(p.x + 0.001f, p.z));
+    float y = 2*EPS;
+    float z = fbmH(vec2(p.x, p.z - 0.001f)) - fbmH(vec2(p.x, p.z + 0.001f));
     return normalize(vec3(x, y, z));
 }
 
@@ -226,6 +281,7 @@ vec3 Transmittance(vec3 eye, vec3 atmosphere_point, float scaleHeight, vec3 sea_
     return exp(-1.0f * sea_level * optical_depth);
 }
 
+// Based on https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/simulating-sky/simulating-colors-of-the-sky
 vec3 SkyColorInternal(vec3 eye, vec3 atmosphere_point) {
     float mu = dot(normalize(atmosphere_point - eye), u_SunDirection);
 
@@ -275,20 +331,23 @@ vec3 SkyColor(vec3 view) {
     vec3 sky_color = vec3(0.0f, 0.0f, 0.0f);
     if (RayAtmosphereIntersect(ray, t)) {
         vec3 atmosphere_intersection = ray.origin + ray.direction*t;
-        sky_color = u_SunIntensity*SkyColorInternal(ray.origin, atmosphere_intersection);
+        sky_color = u_SunColor*SkyColorInternal(ray.origin, atmosphere_intersection);
     }
     return sky_color;
 }
 
-vec3 SunColor(vec3 view, vec3 sun_color) {
+vec3 SunColor(vec3 view) {
     float sun_dot = clamp(dot(u_SunDirection, view), 0.0f, 1.0f);
-    vec3 core = sun_color*pow(sun_dot, 6000.0f);
-   
-    //vec3 halo1 = haloclr1 * pow ( sundot, 50.0);
-    //vec3 halo2 = haloclr2 * pow ( sundot, 20.0);
-    //vec3 sun = core + halo1 *0.5 + halo2 *0.9 ;
-
+    vec3 core = u_SunColor*pow(sun_dot, 10000.0f / u_SunSize);
     return core;
+}
+
+// https://www.iquilezles.org/www/articles/fog/fog.htm - better fog
+vec3 ApplyFog(vec3 color, vec3 eye, float distance) {
+    float fog_amount = 1.0f - exp(-distance*0.05f);
+    float sun_amount = max(dot(eye, u_SunDirection), 0.0f);
+    vec3 fog_color = mix(vec3(0.5f, 0.6f, 0.7f), u_SunColor, pow(sun_amount, 8.0f))*u_SunIntensity*0.5f;
+    return mix(color, fog_color, fog_amount);
 }
 
 /* Atmosphere - end */
@@ -322,17 +381,19 @@ void main() {
         shadowRay.direction = u_SunDirection;
 
         float shadow = SoftShadow(shadowRay, 5.0f);
-        vec3 cshadow = pow(vec3(shadow), vec3(1.0f, 1.2f, 1.5f));
+        vec3 cshadow = pow(vec3(shadow), u_SunColor);
 
         // First light - sky
         color = cshadow*vec3(0.2f, 0.2f, 0.2f)*dot(hit_normal, u_SunDirection)*u_SunIntensity;
         // Second light - sun
-        color += AmbientOcclusion(hit_point, hit_normal)*SkyColor(hit_normal)*2.0f;   
+        color += AmbientOcclusion(hit_point, hit_normal)*SkyColor(hit_normal)*u_SunIntensity*2.0f;   
         // Third light - Indirect approximation
-        color += vec3(0.2f, 0.2f, 0.2f)*dot(hit_normal, u_SunDirection*vec3(-1.0f, 0.0f, -1.0f))*0.3f;
+        color += vec3(0.2f, 0.2f, 0.2f)*dot(hit_normal, u_SunDirection*vec3(-1.0f, 0.0f, -1.0f))*0.5f*u_SunIntensity;
+
+        color = ApplyFog(color, ray.direction, t);
     }
     else {
-        color = SkyColor(ray.direction) + SunColor(ray.direction, vec3(1.0f, 1.2f, 1.5f));
+        color = (SkyColor(ray.direction) + SunColor(ray.direction))*u_SunIntensity;
     }
 
     final_color = vec4(color, 1.0f);

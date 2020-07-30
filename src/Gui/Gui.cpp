@@ -1,5 +1,7 @@
 #include <cstdio>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -154,7 +156,7 @@ namespace fbmgen {
         ImGui::End();
     }
 
-    void Gui::Stats() {
+    /*void Gui::Stats() {
         auto& window = m_App->GetWindow();
 
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
@@ -167,33 +169,59 @@ namespace fbmgen {
         ImGui::Begin("Stats", NULL, window_flags);
             ImGui::Text("FPS: %f", ImGui::GetIO().Framerate);
         ImGui::End();
-    }
+    }*/
 
-    void Gui::Sky() {
+    void Gui::Settings() {
         auto& window = m_App->GetWindow();
         auto& renderer = m_App->GetRenderer();
 
         s32 width, height;
         window.GetSize(&width, &height);
 
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove;
-        ImGui::SetNextWindowPos(ImVec2((float)width*2/3, 98));
-        ImGui::Begin("Sky", NULL, window_flags);
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | 
+                                        ImGuiWindowFlags_NoCollapse  | ImGuiWindowFlags_NoResize;
+        ImGui::SetNextWindowPos(ImVec2((float)width*2/3, 18));
+        ImGui::SetNextWindowSize(ImVec2((float)width*1/3, (float)height - 18.0f));
+        ImGui::Begin("Settings", NULL, window_flags);
 
-        glm::vec3 dir = renderer.GetSunDirection();
-        float sundir[3] = { dir.x, dir.y, dir.z }; 
-        if (ImGui::DragFloat3("Sun direction", sundir, 0.05f, -1.0f, 1.0f)) {
-            glm::vec3 result = {sundir[0], sundir[1], sundir[2]};
-            result = glm::normalize(result);
-            renderer.SetSunDirection(result);
+        if (ImGui::CollapsingHeader("Sun")) {
+            glm::vec3 sun_dir = renderer.GetSunDirection();
+            if (ImGui::DragFloat3("Sun direction", glm::value_ptr(sun_dir), 0.05f, -1.0f, 1.0f)) {
+                renderer.SetSunDirection(glm::normalize(sun_dir));
+            }
+
+            glm::vec3 sun_color = renderer.GetSunColor();
+            ImGui::ColorEdit3("Sun Color", glm::value_ptr(sun_color), ImGuiColorEditFlags_Float);
+            renderer.SetSunColor(sun_color);
+
+            f32 sun_intensity = renderer.GetSunIntensity();
+            if (ImGui::DragFloat("Sun intensity", &sun_intensity, 0.05f, 0.0f, 3.0f)) {
+                sun_intensity = glm::clamp(sun_intensity, 0.0f, 3.0f);
+                renderer.SetSunIntensity(sun_intensity);
+            }
+
+            f32 sun_size = renderer.GetSunSize();
+            if (ImGui::DragFloat("Sun size", &sun_size, 0.05f, 1.0f, 10.0f)) {
+                sun_size = glm::clamp(sun_size, 1.0f, 10.0f);
+                renderer.SetSunSize(sun_size);
+            }
         }
 
-        glm::vec3 sun_color = renderer.GetSunColor();
-        float suncolor[3] = {sun_color.x, sun_color.y, sun_color.z};
-        ImGui::ColorEdit3("Sun Color", suncolor, ImGuiColorEditFlags_Float);
-        renderer.SetSunColor(glm::vec3(suncolor[0], suncolor[1], suncolor[2]));
-        ImGui::End();
+        if (ImGui::CollapsingHeader("FBM")) {
+            s32 num_octaves = renderer.GetFbmOctaves();
+            if (ImGui::DragInt("Number of octaves", &num_octaves, 1.0f, 2, 24)) {
+                num_octaves = glm::clamp(num_octaves, 2, 24);
+                renderer.SetFbmOctaves(num_octaves);
+            }
 
+            f32 fbm_scale = renderer.GetFbmScale();
+            if (ImGui::DragFloat("Scale", &fbm_scale, 0.01f, 0.1f, 2.0f)) {
+                fbm_scale = glm::clamp(fbm_scale, 0.1f, 2.0f);
+                renderer.SetFbmScale(fbm_scale);
+            }
+        }
+
+        ImGui::End();
     }
 
    
@@ -322,8 +350,8 @@ namespace fbmgen {
         MenuBar();
         Preview();
         Log();
-        Stats();
-        Sky();
+        //Stats();
+        Settings();
 
         SaveConfig();
         LoadConfig();

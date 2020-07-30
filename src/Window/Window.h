@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../Core/utils.h" // to prevent APIENTRY redefinition
 #include <glm/glm.hpp>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>

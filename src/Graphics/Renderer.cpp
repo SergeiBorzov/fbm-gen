@@ -106,8 +106,12 @@ namespace fbmgen {
         m_Shader->Run();
         m_Shader->SetUniform("u_ViewMatrix", m_Camera->GetViewMatrix());
         m_Shader->SetUniform("u_SunDirection", m_SunDirection);
+        m_Shader->SetUniform("u_SunColor", m_SunColor);
         m_Shader->SetUniform("u_Resolution", glm::vec2(m_Texture->GetWidth(), m_Texture->GetHeight()));
         m_Shader->SetUniform("u_SunIntensity", m_SunIntensity);
+        m_Shader->SetUniform("u_SunSize", m_SunSize);
+        m_Shader->SetUniform("u_FbmOctaves", m_FbmOctaves);
+        m_Shader->SetUniform("u_FbmScale", m_FbmScale);
         GLCALL(glBindVertexArray(m_VertexArray));
         GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer));
 
@@ -136,7 +140,11 @@ namespace fbmgen {
         m_Shader->SetUniform("u_ViewMatrix", m_Camera->GetViewMatrix());
         m_Shader->SetUniform("u_SunDirection", m_SunDirection);
         m_Shader->SetUniform("u_Resolution", glm::vec2(width, height));
+        m_Shader->SetUniform("u_SunColor", m_SunColor);
         m_Shader->SetUniform("u_SunIntensity", m_SunIntensity);
+        m_Shader->SetUniform("u_SunSize", m_SunSize);
+        m_Shader->SetUniform("u_FbmOctaves", m_FbmOctaves);
+        m_Shader->SetUniform("u_FbmScale", m_FbmScale);
 
         GLCALL(glBindVertexArray(m_VertexArray));
         GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer));
