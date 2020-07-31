@@ -12,6 +12,12 @@ namespace fbmgen {
 
     class Application;
 
+    enum class FbmInterpolation {
+        Cubic = 0,
+        Quintic = 1
+    };
+
+
     class Renderer {
     public:
         inline const Texture* GetTexture() const { return m_Texture; }
@@ -38,8 +44,20 @@ namespace fbmgen {
         inline void SetFbmOctaves(s32 value) { m_FbmOctaves = value; }
         inline s32 GetFbmOctaves() const { return m_FbmOctaves; }
 
-        inline void SetFbmScale(f32 value) { m_FbmScale = value; }
-        inline f32 GetFbmScale() const { return m_FbmScale; }
+        inline void SetFbmAmplitude(f32 value) { m_FbmAmplitude = value; }
+        inline f32 GetFbmAmplitude() const { return m_FbmAmplitude; }
+
+        inline void SetFbmFrequency(f32 value) { m_FbmFrequency = value; }
+        inline f32 GetFbmFrequency() const { return m_FbmFrequency; }
+
+        inline void SetFbmErosion(f32 value) { m_FbmErosion = value; }
+        inline f32 GetFbmErosion() const { return m_FbmErosion; }
+
+        void SetFbmInterpolation(FbmInterpolation interp);
+        inline FbmInterpolation GetFbmInterpolation() const { return m_FbmInterpolation; }
+
+        void SetFbmUseDerivatives(bool value);
+        inline bool GetFbmUseDerivatives() const { return m_FbmUseDerivatives; }
         //
 
         void RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality = 100);
@@ -55,8 +73,15 @@ namespace fbmgen {
         glm::vec3 m_SunColor = glm::vec3(1.0f, 0.855f, 0.740f);
         f32 m_SunIntensity = 1.2f;
         f32 m_SunSize = 5.0f;
-        f32 m_FbmScale = 1.0f;
+        f32 m_FbmAmplitude = 1.0f;
+        f32 m_FbmFrequency = 1.0f;
         s32 m_FbmOctaves = 16;
+        f32 m_FbmErosion = 1.0f;
+
+
+        FbmInterpolation m_FbmInterpolation = FbmInterpolation::Quintic;
+        bool m_FbmUseDerivatives = false;
+
         
         /* Screen Quad */ 
         u32 m_FrameBuffer = 0;

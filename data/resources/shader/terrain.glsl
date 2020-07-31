@@ -26,7 +26,7 @@ in Data {
 
 #define M_PI 3.1415926535897932384f
 
-#define MAX_DISTANCE 28.0f
+#define MAX_DISTANCE 40.0f
 #define MAX_ITER 512
 #define EPS 0.002f
 
@@ -39,6 +39,8 @@ in Data {
 #define PLANET_RADIUS  6360e3
 #define PLANET_ATM_RADIUS 6420e3 //planet + atmosphere radius
 
+#define SOFT_SHADOW_ITERATIONS 32
+
 
 uniform vec2 u_Resolution;
 uniform mat4 u_ViewMatrix;
@@ -48,8 +50,14 @@ uniform vec3 u_SunColor;
 uniform float u_SunIntensity;
 uniform float u_SunSize;
 
-uniform float u_FbmScale;
+uniform float u_FbmFrequency;
+uniform float u_FbmAmplitude;
 uniform int u_FbmOctaves;
+
+#ifdef USE_DERIVATIVES
+uniform float u_FbmErosion;
+#endif
+
 /*----------------------*/
 
 /*----------------------*/
@@ -72,12 +80,14 @@ Ray CreateRay() {
     return ray;
 }
 
+
+
 float Random(vec2 p){
     return fract(sin(dot(p.xy , vec2(12.9898f,78.233f))) * 43758.5453f);
 }
 
-#define CUBIC_POLYNOMIAL
-#define USE_DERIVATIVES
+//#define QUINTIC_POLYNOMIAL
+//#define USE_DERIVATIVES
 
 vec3 Noise(vec2 p) {
     vec2 i = floor(p); // floor of p
@@ -114,60 +124,47 @@ vec3 Noise(vec2 p) {
     return vec3(-1.0f + 2.0f*n, 2.0f*du*vec2(b - a + k*f.y, c - a + k*f.x));
 }
 
-
-/*float terrainM( in vec2 x ) {
-	vec2  p = x*0.003/SC;
-    float a = 0.0;
-    float b = 1.0;
-	vec2  d = vec2(0.0);
-    for( int i=0; i<9; i++ )
-    {
-        vec3 n = noised(p);
-        d += n.yz;
-        a += b*n.x/(1.0+dot(d,d));
-		b *= 0.5;
-        p = m2*p*2.0;
-    }
-	return SC*120.0*a;
-}*/
-
 /* fbmM - for ray marching */
 /* fbmH - for computing normal */
 
+const mat2 m2 = mat2(0.8,-0.6,0.6,0.8);
+
 float fbmM(vec2 p) {
-    vec2 scaled_p = p*u_FbmScale;
+    vec2 scaled_p = p*u_FbmFrequency;
     float f = 0.0f, w = 0.5f;
 #ifdef USE_DERIVATIVES
     vec2  d = vec2(0.0);
 #endif
-    for (int i = 0; i < u_FbmOctaves; ++i) {
-        vec3 n = Noise(scaled_p);
+    for (int i = 0; i < u_FbmOctaves; i++) {
+        vec3 n =  u_FbmAmplitude*Noise(scaled_p);
 #ifdef USE_DERIVATIVES
-        d += n.yz;
-        f += w * n.x / (1.0f + dot(d, d));
+        d += w*n.yz;
+        f += w*n.x/(1.0f + u_FbmErosion*dot(d, d));
 #else
-        f += w * n.x;
+        f += w*n.x;
 #endif
-        w *= 0.5f; scaled_p *= 2.0f;
+        w *= 0.5f; 
+        scaled_p = m2*scaled_p*2.0f;
     }
     return f;
 }
 
 float fbmH(vec2 p) {
-    vec2 scaled_p = p*u_FbmScale;
+    vec2 scaled_p = p*u_FbmFrequency;
     float f = 0.0f, w = 0.5f;
 #ifdef USE_DERIVATIVES
     vec2  d = vec2(0.0);
 #endif
-    for (int i = 0; i < u_FbmOctaves + 7; ++i) {
-        vec3 n = Noise(scaled_p);
+    for (int i = 0; i < u_FbmOctaves + 7; i++) {
+        vec3 n = u_FbmAmplitude*Noise(scaled_p);
 #ifdef USE_DERIVATIVES
-        d += n.yz;
-        f += w * n.x / (1.0f + dot(d, d));
+        d += w*n.yz;
+        f += w*n.x / (1.0f + u_FbmErosion*dot(d, d));
 #else
-        f += w * n.x;
+        f += w*n.x;
 #endif
-        w *= 0.5f; scaled_p *= 2.0f;
+        w *= 0.5f; 
+        scaled_p = m2*scaled_p*2.0f;
     }
     return f;
 }
@@ -212,29 +209,21 @@ float RayMarching(Ray ray) {
 
 // Formulas from Inigo Quilez:
 // http://iquilezles.org/www/articles/rmshadows/rmshadows.htm
-float SoftShadow(Ray ray, float sharpness) {
-    const int iter = 15;
-    float length = 0.0f;
+float SoftShadow(Ray ray) {
+    float t = 0.01f;
     float shadow = 1.0f;
     float previousDistance = 1e20;
   
-    for (int i = 0; i < iter; i++) {
-        float d = SceneSDF(ray.origin + ray.direction*length);
+    for (int i = 0; i < SOFT_SHADOW_ITERATIONS; i++) {
+        float d = SceneSDF(ray.origin + ray.direction*t);
        
-        // Hard shadow
-        if (d < EPS) {
-            shadow = 0.0f; 
-            return shadow;
-        }
-
-        // Soft shadow
-        float y = d*d / (2.0f*previousDistance);
-        float t = sqrt(d*d - y*y);
-
-        shadow = min(shadow, sharpness*t / max(0.0f, length - y));
+        float y = d*d/(2.0*previousDistance);
+        float g = sqrt(d*d-y*y);
+        shadow = min(shadow, 10.0f*g/max(0.0,t-y) );
         previousDistance = d;
-        length += d;
-        if (length > MAX_DISTANCE) break;
+
+        t += d;
+        if (shadow < 0.0001f || t > MAX_DISTANCE) break;
     }
     shadow = 3*shadow*shadow - 2*shadow*shadow*shadow;
     return clamp(shadow, 0.0f, 1.0f);
@@ -337,16 +326,16 @@ vec3 SkyColor(vec3 view) {
 }
 
 vec3 SunColor(vec3 view) {
-    float sun_dot = clamp(dot(u_SunDirection, view), 0.0f, 1.0f);
+    float sun_dot = max(dot(u_SunDirection, view), 0.0f);
     vec3 core = u_SunColor*pow(sun_dot, 10000.0f / u_SunSize);
     return core;
 }
 
 // https://www.iquilezles.org/www/articles/fog/fog.htm - better fog
 vec3 ApplyFog(vec3 color, vec3 eye, float distance) {
-    float fog_amount = 1.0f - exp(-distance*0.05f);
+    float fog_amount = 1.0f - exp(-distance*0.005f);
     float sun_amount = max(dot(eye, u_SunDirection), 0.0f);
-    vec3 fog_color = mix(vec3(0.5f, 0.6f, 0.7f), u_SunColor, pow(sun_amount, 8.0f))*u_SunIntensity*0.5f;
+    vec3 fog_color= mix(vec3(0.5f, 0.6f, 0.7f), u_SunColor, pow(sun_amount, 8.0f))*u_SunIntensity*0.4f;
     return mix(color, fog_color, fog_amount);
 }
 
@@ -356,9 +345,11 @@ vec3 ApplyFog(vec3 color, vec3 eye, float distance) {
 /*---------------------------*/
 /*------POST-PROCESSING------*/
 /*---------------------------*/
-vec3 ToneMapping(vec3 color) {
-	color = max(vec3(0.0f), color - vec3(0.004f));
-	color = (color * (6.2f * color + 0.5f)) / (color * (6.2f * color + 1.7f) + 0.06f);
+vec3 simpleReinhardToneMapping(vec3 color)
+{
+	float exposure = 1.5;
+	color *= exposure/(1. + color / exposure);
+	color = pow(color, vec3(1. / 2.2f));
 	return color;
 }
 /*--------------------*/
@@ -374,27 +365,28 @@ void main() {
     if (t > 0.0f) {
         vec3 hit_point = ray.origin + t*ray.direction;
         vec3 hit_normal = Normal(hit_point);
-        hit_point += hit_normal*100*EPS;
+        hit_point += hit_normal*1000*EPS;
 
         Ray shadowRay;
         shadowRay.origin = hit_point;
         shadowRay.direction = u_SunDirection;
 
-        float shadow = SoftShadow(shadowRay, 5.0f);
+        float shadow = SoftShadow(shadowRay);
         vec3 cshadow = pow(vec3(shadow), u_SunColor);
 
         // First light - sky
-        color = cshadow*vec3(0.2f, 0.2f, 0.2f)*dot(hit_normal, u_SunDirection)*u_SunIntensity;
+        color = cshadow*vec3(0.6f, 0.3f, 0.0f)*max(dot(hit_normal, u_SunDirection), 0.0f)*u_SunIntensity;
         // Second light - sun
-        color += AmbientOcclusion(hit_point, hit_normal)*SkyColor(hit_normal)*u_SunIntensity*2.0f;   
+        color += vec3(0.6f, 0.3f, 0.0f)*AmbientOcclusion(hit_point, hit_normal)*SkyColor(hit_normal)*u_SunIntensity*0.2f;   
         // Third light - Indirect approximation
-        color += vec3(0.2f, 0.2f, 0.2f)*dot(hit_normal, u_SunDirection*vec3(-1.0f, 0.0f, -1.0f))*0.5f*u_SunIntensity;
-
+        color += vec3(0.6f, 0.3f, 0.0f)*max(dot(hit_normal, u_SunDirection*vec3(-1.0f, 0.0f, -1.0f)), 0.0f)*0.1f*u_SunIntensity;
         color = ApplyFog(color, ray.direction, t);
+        
     }
     else {
         color = (SkyColor(ray.direction) + SunColor(ray.direction))*u_SunIntensity;
     }
 
+    color = simpleReinhardToneMapping(color);
     final_color = vec4(color, 1.0f);
 }

@@ -49,11 +49,11 @@ namespace fbmgen {
         result->m_ShaderMap[GL_VERTEX_SHADER] = shader_source.substr(v_index + strlen("__VERTEX__"), f_index - v_index - strlen("__VERTEX__"));
         result->m_ShaderMap[GL_FRAGMENT_SHADER]  = shader_source.substr(f_index + strlen("__FRAGMENT__"));
 
-        if (!result->Compile()) {
+        /*if (!result->Compile()) {
             delete result;
             free(shaderData);
             return nullptr;
-        }
+        }*/
         
         // Shader is ready to use
         free(shaderData);
@@ -74,6 +74,7 @@ namespace fbmgen {
 
     bool Shader::CompilePart(const char* source, GLenum type) {
         GLCALL(m_ShaderHandles[type] = glCreateShader(type));
+
         GLCALL(glShaderSource(m_ShaderHandles[type], 1, &source, NULL));
         GLCALL(glCompileShader(m_ShaderHandles[type]));
         return true;
@@ -91,11 +92,31 @@ namespace fbmgen {
         return success;
     }
 
+    void Shader::ClearDefines() {
+        m_Defines.clear();
+    }
+
+    void Shader::AddDefine(const char* define) {
+        m_Defines.push_back(define);
+    }
+
+
     bool Shader::Compile() {
         GLCALL(m_Handle = glCreateProgram());
 
         for (const auto& p: m_ShaderMap) {
-            CompilePart(p.second.c_str(), p.first);
+
+            std::string source = p.second;
+            for (int i = 0; i < m_Defines.size(); i++) {
+                size_t index = source.find("#version 330");
+                if (index == std::string::npos) {
+                    fprintf(stderr, "Here\n");
+                    return false;
+                }
+                source.insert(index + strlen("#version 330"), m_Defines[i]);
+            }
+
+            CompilePart(source.c_str(), p.first);
             if (!CompileSuccess(m_ShaderHandles[p.first])) {
                 for (const auto& item: m_ShaderHandles) {
                     if (item.second) {

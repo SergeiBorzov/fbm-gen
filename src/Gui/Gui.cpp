@@ -187,6 +187,9 @@ namespace fbmgen {
         if (ImGui::CollapsingHeader("Sun")) {
             glm::vec3 sun_dir = renderer.GetSunDirection();
             if (ImGui::DragFloat3("Sun direction", glm::value_ptr(sun_dir), 0.05f, -1.0f, 1.0f)) {
+                if (sun_dir.y < -0.1f) {
+                    sun_dir.y = 0.0f;
+                }
                 renderer.SetSunDirection(glm::normalize(sun_dir));
             }
 
@@ -214,11 +217,38 @@ namespace fbmgen {
                 renderer.SetFbmOctaves(num_octaves);
             }
 
-            f32 fbm_scale = renderer.GetFbmScale();
-            if (ImGui::DragFloat("Scale", &fbm_scale, 0.01f, 0.1f, 2.0f)) {
-                fbm_scale = glm::clamp(fbm_scale, 0.1f, 2.0f);
-                renderer.SetFbmScale(fbm_scale);
+            f32 fbm_frequency = renderer.GetFbmFrequency();
+            if (ImGui::DragFloat("Frequency", &fbm_frequency, 0.001f, 0.001f, 2.0f)) {
+                fbm_frequency = glm::clamp(fbm_frequency, 0.001f, 2.0f);
+                renderer.SetFbmFrequency(fbm_frequency);
             }
+
+            f32 fbm_amplitude = renderer.GetFbmAmplitude();
+            if (ImGui::DragFloat("Amplitude", &fbm_amplitude, 0.01f, 0.0f, 2.0f)) {
+                fbm_amplitude = glm::clamp(fbm_amplitude, 0.0f, 2.0f);
+                renderer.SetFbmAmplitude(fbm_amplitude);
+            }
+
+            bool use_derivatives = renderer.GetFbmUseDerivatives();
+            if (ImGui::Checkbox("Use derivatives", &use_derivatives)) {
+                renderer.SetFbmUseDerivatives(use_derivatives);
+            }
+
+            if (use_derivatives) {
+                f32 erosion = renderer.GetFbmErosion();
+                if (ImGui::DragFloat("Erosion", &erosion, 0.01f, 0.0f, 5.0f)) {
+                    erosion = glm::clamp(erosion, 0.0f, 5.0f);
+                    renderer.SetFbmErosion(erosion);
+                }
+            }
+
+            const char* items[] = { "Quintic", "Cubic"};
+            int item_current = static_cast<int>(renderer.GetFbmInterpolation());
+            if (ImGui::Combo("Interpolation polynom", &item_current, items, IM_ARRAYSIZE(items))) {
+                renderer.SetFbmInterpolation(static_cast<FbmInterpolation>(item_current));
+            }
+            
+            
         }
 
         ImGui::End();

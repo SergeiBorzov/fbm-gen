@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include <unordered_map>
 #include <string>
 
@@ -16,6 +17,7 @@ namespace fbmgen {
         inline u32 GetHandle() const { return m_Handle; }
         
         void Run();
+        bool Compile();
 
         void SetUniform(const char* name, s32 value);
         void SetUniform(const char* name, s32* values, s32 count);
@@ -26,13 +28,17 @@ namespace fbmgen {
         void SetUniform(const char* name, const glm::mat3& matrix);
         void SetUniform(const char* name, const glm::mat4& matrix);
 
+        void ClearDefines();
+        void AddDefine(const char* define);
+
         ~Shader();
     private:
-        bool Compile();
+       
         bool CompilePart(const char* source, GLenum type);
         bool CompileSuccess(u32 handle);
         bool LinkSuccess();
 
+        std::vector<std::string> m_Defines;
         std::unordered_map<GLenum, std::string> m_ShaderMap;
         std::unordered_map<GLenum, u32> m_ShaderHandles;
 

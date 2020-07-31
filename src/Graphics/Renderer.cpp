@@ -15,8 +15,66 @@ namespace fbmgen {
         glm::vec2 xy = imageCoord - resolution*0.5f;
         float z = resolution.y / tan(glm::radians(60.0f) / 2.0f);
         glm::vec3 direction = glm::normalize(xy.x * m_Camera->GetRight() - xy.y * m_Camera->GetUp() + z*m_Camera->GetFront());
+        if (direction.y < -0.1f) {
+            direction.y = -0.1f;
+            glm::normalize(direction);
+        }
         m_SunDirection = glm::normalize(direction);
     }
+
+    void Renderer::SetFbmInterpolation(FbmInterpolation interpolation) {
+        m_FbmInterpolation = interpolation;
+        auto& console = m_App->GetLog();
+        m_Shader->ClearDefines();
+        
+        if (m_FbmUseDerivatives) {
+            m_Shader->AddDefine("\n#define USE_DERIVATIVES\n");
+        }
+
+        switch (interpolation) {
+            case FbmInterpolation::Quintic: {
+                m_Shader->AddDefine("\n#define QUINTIC_POLYNOMIAL\n");
+                break;
+            }
+            case FbmInterpolation::Cubic: {
+                m_Shader->AddDefine("\n#define CUBIC_POLYNOMIAL\n");
+                break;
+            }
+        }
+        
+        Timer t;
+        t.Run();
+        assert(m_Shader->Compile());
+        t.Stop();
+        console.AddLog("Shader recompiled in %g seconds\n", t.GetTimeS());
+    };
+
+    void Renderer::SetFbmUseDerivatives(bool flag) {
+        m_FbmUseDerivatives = flag;
+        auto& console = m_App->GetLog();
+        m_Shader->ClearDefines();
+        
+        if (m_FbmUseDerivatives) {
+            m_Shader->AddDefine("\n#define USE_DERIVATIVES\n");
+        }
+
+        switch (m_FbmInterpolation) {
+            case FbmInterpolation::Quintic: {
+                m_Shader->AddDefine("\n#define QUINTIC_POLYNOMIAL\n");
+                break;
+            }
+            case FbmInterpolation::Cubic: {
+                m_Shader->AddDefine("\n#define CUBIC_POLYNOMIAL\n");
+                break;
+            }
+        }
+        
+        Timer t;
+        t.Run();
+        assert(m_Shader->Compile());
+        t.Stop();
+        console.AddLog("Shader recompiled in %g seconds\n", t.GetTimeS());
+    };
 
     bool Renderer::Create(Application* app) {
         if (!app) {
@@ -72,6 +130,22 @@ namespace fbmgen {
             return false;
         }
 
+        m_Shader->ClearDefines();
+        switch (m_FbmInterpolation) {
+            case FbmInterpolation::Quintic: {
+                m_Shader->AddDefine("\n#define QUINTIC_POLYNOMIAL\n");
+                break;
+            }
+            case FbmInterpolation::Cubic: {
+                m_Shader->AddDefine("\n#define CUBIC_POLYNOMIAL\n");
+                break;
+            }
+        }
+        
+        if (!m_Shader->Compile()) {
+            return false;
+        }
+
         /* Create framebuffer and attach m_Texture to it */
         GLCALL(glGenFramebuffers(1, &m_FrameBuffer));
         GLCALL(glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer));
@@ -111,7 +185,11 @@ namespace fbmgen {
         m_Shader->SetUniform("u_SunIntensity", m_SunIntensity);
         m_Shader->SetUniform("u_SunSize", m_SunSize);
         m_Shader->SetUniform("u_FbmOctaves", m_FbmOctaves);
-        m_Shader->SetUniform("u_FbmScale", m_FbmScale);
+        m_Shader->SetUniform("u_FbmFrequency", m_FbmFrequency);
+        m_Shader->SetUniform("u_FbmAmplitude", m_FbmAmplitude);
+        if (m_FbmUseDerivatives)
+             m_Shader->SetUniform("u_FbmErosion", m_FbmErosion);
+
         GLCALL(glBindVertexArray(m_VertexArray));
         GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer));
 
@@ -144,7 +222,10 @@ namespace fbmgen {
         m_Shader->SetUniform("u_SunIntensity", m_SunIntensity);
         m_Shader->SetUniform("u_SunSize", m_SunSize);
         m_Shader->SetUniform("u_FbmOctaves", m_FbmOctaves);
-        m_Shader->SetUniform("u_FbmScale", m_FbmScale);
+        m_Shader->SetUniform("u_FbmFrequency", m_FbmFrequency);
+        m_Shader->SetUniform("u_FbmAmplitude", m_FbmAmplitude);
+        if (m_FbmUseDerivatives)
+            m_Shader->SetUniform("u_FbmErosion", m_FbmErosion);
 
         GLCALL(glBindVertexArray(m_VertexArray));
         GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer));
@@ -178,6 +259,11 @@ namespace fbmgen {
     }
 
     Renderer::~Renderer() {
+
+        if (m_Shader) {
+            delete m_Shader;
+        }
+
         if (m_Texture) {
             delete m_Texture;
         }
