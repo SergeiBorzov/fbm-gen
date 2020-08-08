@@ -81,6 +81,9 @@ Ray CreateRay() {
 }
 
 
+float Random(float n) {
+    return fract(sin(n)*43758.5453123);
+}
 
 float Random(vec2 p){
     return fract(sin(dot(p.xy , vec2(12.9898f,78.233f))) * 43758.5453f);
@@ -103,13 +106,14 @@ vec3 Noise(vec2 p) {
     vec2 du = f*(-6.0f*f + 6.0f); // derivative
 #endif
     
+    float n = i.x + i.y*124.0f;
     float a = Random(i + vec2(0.0f, 0.0f));
     float b = Random(i + vec2(1.0f, 0.0f));
     float c = Random(i + vec2(0.0f, 1.0f));
     float d = Random(i + vec2(1.0f, 1.0f));
     
     // Bilinear interpolation to find noise value
-    float n = mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    float value = mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
     /*  Note:
         n can be represented this way
         n = k0 + k1*v1 + k2*v2 + k3*v1v2
@@ -121,7 +125,7 @@ vec3 Noise(vec2 p) {
 
     float k = a - b - c + d;
 
-    return vec3(-1.0f + 2.0f*n, 2.0f*du*vec2(b - a + k*f.y, c - a + k*f.x));
+    return vec3(-1.0f + 2.0f*value, 2.0f*du*vec2(b - a + k*f.y, c - a + k*f.x));
 }
 
 /* fbmM - for ray marching */
@@ -333,10 +337,40 @@ vec3 SunColor(vec3 view) {
 
 // https://www.iquilezles.org/www/articles/fog/fog.htm - better fog
 vec3 ApplyFog(vec3 color, vec3 eye, float distance) {
-    float fog_amount = 1.0f - exp(-distance*0.005f);
+    float fog_amount = 1.0f - exp(-distance*0.015f);
     float sun_amount = max(dot(eye, u_SunDirection), 0.0f);
     vec3 fog_color= mix(vec3(0.5f, 0.6f, 0.7f), u_SunColor, pow(sun_amount, 8.0f))*u_SunIntensity*0.4f;
     return mix(color, fog_color, fog_amount);
+}
+
+vec3 TerrainColor(vec3 point, vec3 normal) {
+    float r = Noise(7.0*point.xz).x;
+    // here we begin coloring the terrain. The base color mixes between
+    // a dark brown base color and a slightly more colorful brown at the top
+    // terrain2 is used here as just another random noise function whose input scales
+    // are on the same magnitude as the position; it's used to give the vertical bands
+    // in the terrain
+    float heightMix = clamp(fbmH(vec2(point.x, point.y*48.0f))/200.0f, 0.0f, 1.0f);
+    // mix the color with a more reddish hue if the normal points more up (how flat it is)
+    vec3 col = (r*0.25f + 0.75f)*0.9f*mix(vec3(0.10f, 0.05f, 0.03f), vec3(0.13f, 0.10f, 0.08f), heightMix);
+    col = mix( col, 0.17*vec3(0.5,.23,0.04)*(0.50+0.50*r),smoothstep(0.70,0.9, normal.y) );
+    // and if they're *really* flat, give it some green for grass
+    col = mix( col, 0.10*vec3(0.2,.30,0.00)*(0.25+0.75*r),smoothstep(0.95,1.0, normal.y) );
+    col *= 0.75;
+     // height factor -- higher places have more snow (h=1), lower places have no snow (h=0)
+    float h = smoothstep(55.0,80.0,point.y + 25.0*fbmM(0.01*point.xz) );
+    // normal+cliff factor -- land that is flatter gets more snow, cliff-like land doesn't get much snow
+    // normal+cliff factor is also scaled by height, aka higher up the slope factor is stronger
+    float e = smoothstep(1.0-0.5*h,1.0-0.1*h,normal.y);
+    // wind directional factor -- if you have a high x slope, put less snow.
+    // so hilly terrain that is going up in one direction will have snow,
+    // going down on the other side will have no snow
+    float o = 0.3 + 0.7*smoothstep(0.0,0.1,normal.x+h*h);
+    float s = h*e*o;
+    s = smoothstep( 0.1, 0.9, s );
+    // mix color with dark grey color for snow
+    col = mix( col, 0.4*vec3(0.6,0.65,0.7), s );
+    return col;
 }
 
 /* Atmosphere - end */
@@ -375,11 +409,12 @@ void main() {
         vec3 cshadow = pow(vec3(shadow), u_SunColor);
 
         // First light - sky
-        color = cshadow*vec3(0.6f, 0.3f, 0.0f)*max(dot(hit_normal, u_SunDirection), 0.0f)*u_SunIntensity;
+        vec3 terrain_color = TerrainColor(hit_point, hit_normal);
+        color = cshadow*terrain_color*max(dot(hit_normal, u_SunDirection), 0.0f)*u_SunIntensity;
         // Second light - sun
-        color += vec3(0.6f, 0.3f, 0.0f)*AmbientOcclusion(hit_point, hit_normal)*SkyColor(hit_normal)*u_SunIntensity*0.2f;   
+        color += terrain_color*AmbientOcclusion(hit_point, hit_normal)*SkyColor(hit_normal)*u_SunIntensity*0.2f;   
         // Third light - Indirect approximation
-        color += vec3(0.6f, 0.3f, 0.0f)*max(dot(hit_normal, u_SunDirection*vec3(-1.0f, 0.0f, -1.0f)), 0.0f)*0.1f*u_SunIntensity;
+        color += terrain_color*max(dot(hit_normal, u_SunDirection*vec3(-1.0f, 0.0f, -1.0f)), 0.0f)*0.1f*u_SunIntensity;
         color = ApplyFog(color, ray.direction, t);
         
     }

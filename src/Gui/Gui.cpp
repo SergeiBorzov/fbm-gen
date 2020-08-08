@@ -240,13 +240,15 @@ namespace fbmgen {
                     erosion = glm::clamp(erosion, 0.0f, 5.0f);
                     renderer.SetFbmErosion(erosion);
                 }
+
+                const char* items[] = { "Quintic", "Cubic"};
+                int item_current = static_cast<int>(renderer.GetFbmInterpolation());
+                if (ImGui::Combo("Interpolation polynom", &item_current, items, IM_ARRAYSIZE(items))) {
+                    renderer.SetFbmInterpolation(static_cast<FbmInterpolation>(item_current));
+                }
             }
 
-            const char* items[] = { "Quintic", "Cubic"};
-            int item_current = static_cast<int>(renderer.GetFbmInterpolation());
-            if (ImGui::Combo("Interpolation polynom", &item_current, items, IM_ARRAYSIZE(items))) {
-                renderer.SetFbmInterpolation(static_cast<FbmInterpolation>(item_current));
-            }
+          
             
             
         }
