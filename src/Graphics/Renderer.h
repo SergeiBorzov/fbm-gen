@@ -50,14 +50,17 @@ namespace fbmgen {
         inline void SetFbmFrequency(f32 value) { m_FbmFrequency = value; }
         inline f32 GetFbmFrequency() const { return m_FbmFrequency; }
 
-        inline void SetFbmErosion(f32 value) { m_FbmErosion = value; }
-        inline f32 GetFbmErosion() const { return m_FbmErosion; }
+        inline void SetFbmSmoothness(f32 value) { m_FbmSmoothness = value; }
+        inline f32 GetFbmSmoothness() const { return m_FbmSmoothness; }
 
         void SetFbmInterpolation(FbmInterpolation interp);
         inline FbmInterpolation GetFbmInterpolation() const { return m_FbmInterpolation; }
 
         void SetFbmUseDerivatives(bool value);
         inline bool GetFbmUseDerivatives() const { return m_FbmUseDerivatives; }
+
+        inline void SetTerrainHeight(f32 value) { m_TerrainHeight = value; }
+        inline f32 GetTerrainHeight() const { return m_TerrainHeight; }
         //
 
         void RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality = 100);
@@ -74,9 +77,10 @@ namespace fbmgen {
         f32 m_SunIntensity = 1.2f;
         f32 m_SunSize = 5.0f;
         f32 m_FbmAmplitude = 1.0f;
-        f32 m_FbmFrequency = 1.0f;
+        f32 m_FbmFrequency = 0.050f;
         s32 m_FbmOctaves = 16;
-        f32 m_FbmErosion = 1.0f;
+        f32 m_FbmSmoothness = 1.0f;
+        f32 m_TerrainHeight = 10.0f;
 
 
         FbmInterpolation m_FbmInterpolation = FbmInterpolation::Quintic;

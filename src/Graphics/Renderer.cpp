@@ -188,7 +188,8 @@ namespace fbmgen {
         m_Shader->SetUniform("u_FbmFrequency", m_FbmFrequency);
         m_Shader->SetUniform("u_FbmAmplitude", m_FbmAmplitude);
         if (m_FbmUseDerivatives)
-             m_Shader->SetUniform("u_FbmErosion", m_FbmErosion);
+             m_Shader->SetUniform("u_FbmSmoothness", m_FbmSmoothness);
+        m_Shader->SetUniform("u_TerrainHeight", m_TerrainHeight);
 
         GLCALL(glBindVertexArray(m_VertexArray));
         GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer));
@@ -225,7 +226,8 @@ namespace fbmgen {
         m_Shader->SetUniform("u_FbmFrequency", m_FbmFrequency);
         m_Shader->SetUniform("u_FbmAmplitude", m_FbmAmplitude);
         if (m_FbmUseDerivatives)
-            m_Shader->SetUniform("u_FbmErosion", m_FbmErosion);
+            m_Shader->SetUniform("u_FbmSmoothness", m_FbmSmoothness);
+        m_Shader->SetUniform("u_TerrainHeight", m_TerrainHeight);
 
         GLCALL(glBindVertexArray(m_VertexArray));
         GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer));

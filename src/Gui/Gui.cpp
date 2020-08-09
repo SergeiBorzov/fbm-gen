@@ -235,10 +235,10 @@ namespace fbmgen {
             }
 
             if (use_derivatives) {
-                f32 erosion = renderer.GetFbmErosion();
-                if (ImGui::DragFloat("Erosion", &erosion, 0.01f, 0.0f, 5.0f)) {
-                    erosion = glm::clamp(erosion, 0.0f, 5.0f);
-                    renderer.SetFbmErosion(erosion);
+                f32 smoothness = renderer.GetFbmSmoothness();
+                if (ImGui::DragFloat("Smoothness", &smoothness, 0.01f, 0.0f, 5.0f)) {
+                    smoothness = glm::clamp(smoothness, 0.0f, 5.0f);
+                    renderer.SetFbmSmoothness(smoothness);
                 }
 
                 const char* items[] = { "Quintic", "Cubic"};
@@ -247,10 +247,14 @@ namespace fbmgen {
                     renderer.SetFbmInterpolation(static_cast<FbmInterpolation>(item_current));
                 }
             }
+        }
 
-          
-            
-            
+        if (ImGui::CollapsingHeader("Terrain")) {
+            f32 terrain_height = renderer.GetTerrainHeight();
+            if (ImGui::DragFloat("Terrain Height", &terrain_height, 0.01f, 0.0f, 10.0f)) {
+                    terrain_height = glm::clamp(terrain_height, 0.0f, 10.0f);
+                    renderer.SetTerrainHeight(terrain_height);
+            }
         }
 
         ImGui::End();

@@ -26,7 +26,7 @@ in Data {
 
 #define M_PI 3.1415926535897932384f
 
-#define MAX_DISTANCE 40.0f
+#define MAX_DISTANCE 50.0f
 #define MAX_ITER 512
 #define EPS 0.002f
 
@@ -39,7 +39,7 @@ in Data {
 #define PLANET_RADIUS  6360e3
 #define PLANET_ATM_RADIUS 6420e3 //planet + atmosphere radius
 
-#define SOFT_SHADOW_ITERATIONS 32
+#define SOFT_SHADOW_ITERATIONS 64
 
 
 uniform vec2 u_Resolution;
@@ -53,10 +53,12 @@ uniform float u_SunSize;
 uniform float u_FbmFrequency;
 uniform float u_FbmAmplitude;
 uniform int u_FbmOctaves;
-
 #ifdef USE_DERIVATIVES
-uniform float u_FbmErosion;
+uniform float u_FbmSmoothness;
 #endif
+
+uniform float u_TerrainHeight;
+
 
 /*----------------------*/
 
@@ -129,8 +131,6 @@ vec3 Noise(vec2 p) {
 }
 
 /* fbmM - for ray marching */
-/* fbmH - for computing normal */
-
 const mat2 m2 = mat2(0.8,-0.6,0.6,0.8);
 
 float fbmM(vec2 p) {
@@ -143,16 +143,18 @@ float fbmM(vec2 p) {
         vec3 n =  u_FbmAmplitude*Noise(scaled_p);
 #ifdef USE_DERIVATIVES
         d += w*n.yz;
-        f += w*n.x/(1.0f + u_FbmErosion*dot(d, d));
+        f += w*n.x/(1.0f + u_FbmSmoothness*dot(d, d));
 #else
         f += w*n.x;
 #endif
         w *= 0.5f; 
         scaled_p = m2*scaled_p*2.0f;
     }
-    return f;
+    return smoothstep(-.95, .5, f) * f * u_TerrainHeight;
 }
 
+/* fbmH - for computing normal */
+/* Has 7 more iterations */
 float fbmH(vec2 p) {
     vec2 scaled_p = p*u_FbmFrequency;
     float f = 0.0f, w = 0.5f;
@@ -163,14 +165,14 @@ float fbmH(vec2 p) {
         vec3 n = u_FbmAmplitude*Noise(scaled_p);
 #ifdef USE_DERIVATIVES
         d += w*n.yz;
-        f += w*n.x / (1.0f + u_FbmErosion*dot(d, d));
+        f += w*n.x / (1.0f + u_FbmSmoothness*dot(d, d));
 #else
         f += w*n.x;
 #endif
         w *= 0.5f; 
         scaled_p = m2*scaled_p*2.0f;
     }
-    return f;
+    return smoothstep(-.95, .5, f) * f * u_TerrainHeight;
 }
 
 float SceneSDF(vec3 p) {
@@ -337,40 +339,62 @@ vec3 SunColor(vec3 view) {
 
 // https://www.iquilezles.org/www/articles/fog/fog.htm - better fog
 vec3 ApplyFog(vec3 color, vec3 eye, float distance) {
-    float fog_amount = 1.0f - exp(-distance*0.015f);
+    float fog_amount = 1.0f - exp(-distance*0.025f);
     float sun_amount = max(dot(eye, u_SunDirection), 0.0f);
-    vec3 fog_color= mix(vec3(0.5f, 0.6f, 0.7f), u_SunColor, pow(sun_amount, 8.0f))*u_SunIntensity*0.4f;
+    vec3 fog_color= mix(vec3(0.5f, 0.6f, 0.7f), u_SunColor, pow(sun_amount, 16.0f))*u_SunIntensity*0.2f;
     return mix(color, fog_color, fog_amount);
 }
 
 vec3 TerrainColor(vec3 point, vec3 normal) {
+    vec3 rock = vec3(0.10f, 0.05f, 0.03f);
+    vec3 snow = vec3 (0.9f, 0.9f, 0.9f);
+    vec3 grass = vec3(0.08f, 0.15f, 0.05f);
+
+    /* if surface is flat add grass */
+    vec3 color = mix(rock, grass,smoothstep(0.95,1.0, normal.y));
+    /* if not add more rocks */
+    color = mix(rock, color, smoothstep(.4, .7, normal.y));
+
+    float h = point.y + fbmM(point.xz);
+    color = mix(color, snow, smoothstep(1.4f, 3.0f, h));
+
     float r = Noise(7.0*point.xz).x;
+    color = (r*0.05f + 0.95f)*0.9f*color;
+    /* vec3 color = mix(grass, rock, smoothstep(0., .9 * u_TerrainHeight,
+								point.y)); 
+            color = mix(color, snow, smoothstep(.9 * u_TerrainHeight,
+							1.4 * u_TerrainHeight, point.y));
+            color = mix(rock, color, smoothstep(.4, .7, normal.y));*/
+    //color = mix(color, snow, smoothstep(0.7f*u_TerrainHeight, 1.4f*u_TerrainHeight, point.y));
+    //color = mix(rock, color, smoothstep(0.25f*u_TerrainHeight, 0.7f*u_TerrainHeight, normal.y));
+
+  
     // here we begin coloring the terrain. The base color mixes between
     // a dark brown base color and a slightly more colorful brown at the top
     // terrain2 is used here as just another random noise function whose input scales
     // are on the same magnitude as the position; it's used to give the vertical bands
     // in the terrain
-    float heightMix = clamp(fbmH(vec2(point.x, point.y*48.0f))/200.0f, 0.0f, 1.0f);
+    //float heightMix = clamp(fbmH(vec2(point.x, point.y*48.0f))/200.0f, 0.0f, 1.0f);
     // mix the color with a more reddish hue if the normal points more up (how flat it is)
-    vec3 col = (r*0.25f + 0.75f)*0.9f*mix(vec3(0.10f, 0.05f, 0.03f), vec3(0.13f, 0.10f, 0.08f), heightMix);
-    col = mix( col, 0.17*vec3(0.5,.23,0.04)*(0.50+0.50*r),smoothstep(0.70,0.9, normal.y) );
+    //vec3 col = (r*0.25f + 0.75f)*0.9f*mix(vec3(0.10f, 0.05f, 0.03f), vec3(0.13f, 0.10f, 0.08f), heightMix);
+    //col = mix( col, 0.17*vec3(0.5,.23,0.04)*(0.50+0.50*r),smoothstep(0.70,0.9, normal.y) );
     // and if they're *really* flat, give it some green for grass
-    col = mix( col, 0.10*vec3(0.2,.30,0.00)*(0.25+0.75*r),smoothstep(0.95,1.0, normal.y) );
-    col *= 0.75;
+    //col = mix( col, 0.10*vec3(0.2,.30,0.00)*(0.25+0.75*r),smoothstep(0.95,1.0, normal.y) );
+    //col *= 0.75;
      // height factor -- higher places have more snow (h=1), lower places have no snow (h=0)
-    float h = smoothstep(55.0,80.0,point.y + 25.0*fbmM(0.01*point.xz) );
+    //float h = smoothstep(55.0,80.0,point.y + 25.0*fbmM(0.01*point.xz) );
     // normal+cliff factor -- land that is flatter gets more snow, cliff-like land doesn't get much snow
     // normal+cliff factor is also scaled by height, aka higher up the slope factor is stronger
-    float e = smoothstep(1.0-0.5*h,1.0-0.1*h,normal.y);
+    //float e = smoothstep(1.0-0.5*h,1.0-0.1*h,normal.y);
     // wind directional factor -- if you have a high x slope, put less snow.
     // so hilly terrain that is going up in one direction will have snow,
     // going down on the other side will have no snow
-    float o = 0.3 + 0.7*smoothstep(0.0,0.1,normal.x+h*h);
-    float s = h*e*o;
-    s = smoothstep( 0.1, 0.9, s );
+    //float o = 0.3 + 0.7*smoothstep(0.0,0.1,normal.x+h*h);
+    //float s = h*e*o;
+    //s = smoothstep( 0.1, 0.9, s );
     // mix color with dark grey color for snow
-    col = mix( col, 0.4*vec3(0.6,0.65,0.7), s );
-    return col;
+    //col = mix( col, 0.4*vec3(0.6,0.65,0.7), s );*/
+    return color;
 }
 
 /* Atmosphere - end */
