@@ -26,7 +26,7 @@ in Data {
 
 #define M_PI 3.1415926535897932384f
 
-#define MAX_DISTANCE 50.0f
+#define MAX_DISTANCE 120.0f
 #define MAX_ITER 512
 #define EPS 0.002f
 
@@ -58,31 +58,16 @@ uniform float u_FbmSmoothness;
 #endif
 
 uniform float u_TerrainHeight;
+uniform float u_SnowLevel;
+uniform float u_GrassLevel;
+#ifdef WATER_ENABLED
+uniform float u_WaterLevel;
+#endif
 
 
 /*----------------------*/
-
+/*----Noise and FBM-----*/
 /*----------------------*/
-/*-----RAY-MARCHING-----*/
-/*----------------------*/
-
-
-struct Ray {
-    vec3 origin;
-    vec3 direction;
-};
-
-Ray CreateRay() {
-    vec2 xy = u_Resolution*fs_in.uv - u_Resolution*0.5f;
-    float z = u_Resolution.y / tan(radians(60.0f) * 0.5f);
-    vec3 direction = normalize(vec3(xy.x*u_ViewMatrix[0].xyz + xy.y*u_ViewMatrix[1].xyz + z*u_ViewMatrix[2].xyz));
-    Ray ray;
-    ray.origin = u_ViewMatrix[3].xyz;
-    ray.direction = direction;
-    return ray;
-}
-
-
 float Random(float n) {
     return fract(sin(n)*43758.5453123);
 }
@@ -91,8 +76,9 @@ float Random(vec2 p){
     return fract(sin(dot(p.xy , vec2(12.9898f,78.233f))) * 43758.5453f);
 }
 
-//#define QUINTIC_POLYNOMIAL
-//#define USE_DERIVATIVES
+float Random(vec3 p) {
+    return fract(sin(dot(p, vec3(12.345, 67.89, 412.12))) * 42123.45) * 2.0 - 1.0;
+}
 
 vec3 Noise(vec2 p) {
     vec2 i = floor(p); // floor of p
@@ -174,10 +160,39 @@ float fbmH(vec2 p) {
     }
     return smoothstep(-.95, .5, f) * f * u_TerrainHeight;
 }
+/*----------------------*/
 
-float SceneSDF(vec3 p) {
+
+
+/*----------------------*/
+/*-----RAY-MARCHING-----*/
+/*----------------------*/
+struct Ray {
+    vec3 origin;
+    vec3 direction;
+};
+
+Ray CreateRay() {
+    vec2 xy = u_Resolution*fs_in.uv - u_Resolution*0.5f;
+    float z = u_Resolution.y / tan(radians(60.0f) * 0.5f);
+    vec3 direction = normalize(vec3(xy.x*u_ViewMatrix[0].xyz + xy.y*u_ViewMatrix[1].xyz + z*u_ViewMatrix[2].xyz));
+    Ray ray;
+    ray.origin = u_ViewMatrix[3].xyz;
+    ray.direction = direction;
+    return ray;
+}
+
+
+
+float TerrainSDF(vec3 p) {
     return p.y - fbmM(p.xz);
 }
+
+#ifdef WATER_ENABLED
+float WaterSDF(vec3 p) {
+    return dot(p + u_WaterLevel, vec3(0.0f, 1.0f, 0.0f));
+}
+#endif
 
 // Normal through gradient
 vec3 Normal(vec3 p) {
@@ -199,18 +214,41 @@ bool RayAtmosphereIntersect(Ray ray, out float t0) {
     return true;    
 }
 
-float RayMarching(Ray ray) {
-    float t = 0.0f;
+int RayMarching(Ray ray, out float t) {
+    t = 0.0f;
     float d = 0.0f;
+    int res = -1;
     for (int i = 0; i < MAX_ITER; i++) {
-        d = SceneSDF(ray.origin + ray.direction*t);
-        if (d < EPS*t || t > MAX_DISTANCE) {
+#ifdef WATER_ENABLED
+        float d1 = TerrainSDF(ray.origin + ray.direction*t);
+        float d2 = WaterSDF(ray.origin + ray.direction*t);
+        if (d1 < d2) {
+            res = 1;
+            d = d1;
+        }
+        else {
+            res = 2;
+            d = d2;
+        }
+
+        if (d < EPS*t) {
+            break;
+        }
+#endif
+        float d = TerrainSDF(ray.origin + ray.direction*t);
+        if (d < EPS*t) {
+            res = 1;
+            break;
+        }
+
+        if (t > MAX_DISTANCE) {
+            res = -1;
             break;
         }
 
         t += 0.4f*d;
     }
-    return d < EPS*t ? t : -1.0f;
+    return res;
 }
 
 // Formulas from Inigo Quilez:
@@ -221,7 +259,7 @@ float SoftShadow(Ray ray) {
     float previousDistance = 1e20;
   
     for (int i = 0; i < SOFT_SHADOW_ITERATIONS; i++) {
-        float d = SceneSDF(ray.origin + ray.direction*t);
+        float d = TerrainSDF(ray.origin + ray.direction*t);
        
         float y = d*d/(2.0*previousDistance);
         float g = sqrt(d*d-y*y);
@@ -241,7 +279,7 @@ float AmbientOcclusion(vec3 p, vec3 n) {
     float dist;
     for (int i = 0; i < 3; i++) {
         dist = step * float(i);
-		ao += max(0.0f, (dist - SceneSDF(p + n * dist)) / dist);  
+		ao += max(0.0f, (dist - TerrainSDF(p + n * dist)) / dist);  
     }
     return 1.0f - ao;
 }
@@ -330,6 +368,13 @@ vec3 SkyColor(vec3 view) {
     }
     return sky_color;
 }
+/*---------------------------*/
+
+
+/*---------------------------*/
+/*----------Shading---------*/
+/*---------------------------*/
+
 
 vec3 SunColor(vec3 view) {
     float sun_dot = max(dot(u_SunDirection, view), 0.0f);
@@ -339,88 +384,47 @@ vec3 SunColor(vec3 view) {
 
 // https://www.iquilezles.org/www/articles/fog/fog.htm - better fog
 vec3 ApplyFog(vec3 color, vec3 eye, float distance) {
-    float fog_amount = 1.0f - exp(-distance*0.025f);
+    float fog_amount = exp(-distance*distance*0.0005);
     float sun_amount = max(dot(eye, u_SunDirection), 0.0f);
-    vec3 fog_color= mix(vec3(0.5f, 0.6f, 0.7f), u_SunColor, pow(sun_amount, 16.0f))*u_SunIntensity*0.2f;
-    return mix(color, fog_color, fog_amount);
+    vec3 fog_color= mix(vec3(0.5f, 0.6f, 0.7f), u_SunColor, pow(sun_amount, 16.0f))*0.2f;
+    return mix(fog_color, color, fog_amount);
 }
 
 vec3 TerrainColor(vec3 point, vec3 normal) {
     vec3 rock = vec3(0.10f, 0.05f, 0.03f);
     vec3 snow = vec3 (0.9f, 0.9f, 0.9f);
-    vec3 grass = vec3(0.08f, 0.15f, 0.05f);
+    vec3 grass = vec3(0.08f, 0.12f, 0.03f);
 
-    /* if surface is flat add grass */
-    vec3 color = mix(rock, grass,smoothstep(0.95,1.0, normal.y));
-    /* if not add more rocks */
-    color = mix(rock, color, smoothstep(.4, .7, normal.y));
+    /* if surface is flat add grass or snow */
+    vec3 color = mix(rock, mix(grass, snow, smoothstep(0.0f, u_TerrainHeight, point.y)), smoothstep(0.95f, 1.0f, normal.y));
+    /* if not add more rocky color */
+    //color = mix(rock, color, smoothstep(0.4f, 0.7f, normal.y));
 
-    float h = point.y + fbmM(point.xz);
-    color = mix(color, snow, smoothstep(1.4f, 3.0f, h));
+    color = mix(grass, color, smoothstep(0.0f, u_GrassLevel, point.y));
+    color = mix(color, snow, smoothstep(u_SnowLevel, u_TerrainHeight, point.y));
+
+    
+
+    //float h = point.y + fbmM(point.xz);
+   
 
     float r = Noise(7.0*point.xz).x;
     color = (r*0.05f + 0.95f)*0.9f*color;
-    /* vec3 color = mix(grass, rock, smoothstep(0., .9 * u_TerrainHeight,
-								point.y)); 
-            color = mix(color, snow, smoothstep(.9 * u_TerrainHeight,
-							1.4 * u_TerrainHeight, point.y));
-            color = mix(rock, color, smoothstep(.4, .7, normal.y));*/
-    //color = mix(color, snow, smoothstep(0.7f*u_TerrainHeight, 1.4f*u_TerrainHeight, point.y));
-    //color = mix(rock, color, smoothstep(0.25f*u_TerrainHeight, 0.7f*u_TerrainHeight, normal.y));
-
-  
-    // here we begin coloring the terrain. The base color mixes between
-    // a dark brown base color and a slightly more colorful brown at the top
-    // terrain2 is used here as just another random noise function whose input scales
-    // are on the same magnitude as the position; it's used to give the vertical bands
-    // in the terrain
-    //float heightMix = clamp(fbmH(vec2(point.x, point.y*48.0f))/200.0f, 0.0f, 1.0f);
-    // mix the color with a more reddish hue if the normal points more up (how flat it is)
-    //vec3 col = (r*0.25f + 0.75f)*0.9f*mix(vec3(0.10f, 0.05f, 0.03f), vec3(0.13f, 0.10f, 0.08f), heightMix);
-    //col = mix( col, 0.17*vec3(0.5,.23,0.04)*(0.50+0.50*r),smoothstep(0.70,0.9, normal.y) );
-    // and if they're *really* flat, give it some green for grass
-    //col = mix( col, 0.10*vec3(0.2,.30,0.00)*(0.25+0.75*r),smoothstep(0.95,1.0, normal.y) );
-    //col *= 0.75;
-     // height factor -- higher places have more snow (h=1), lower places have no snow (h=0)
-    //float h = smoothstep(55.0,80.0,point.y + 25.0*fbmM(0.01*point.xz) );
-    // normal+cliff factor -- land that is flatter gets more snow, cliff-like land doesn't get much snow
-    // normal+cliff factor is also scaled by height, aka higher up the slope factor is stronger
-    //float e = smoothstep(1.0-0.5*h,1.0-0.1*h,normal.y);
-    // wind directional factor -- if you have a high x slope, put less snow.
-    // so hilly terrain that is going up in one direction will have snow,
-    // going down on the other side will have no snow
-    //float o = 0.3 + 0.7*smoothstep(0.0,0.1,normal.x+h*h);
-    //float s = h*e*o;
-    //s = smoothstep( 0.1, 0.9, s );
-    // mix color with dark grey color for snow
-    //col = mix( col, 0.4*vec3(0.6,0.65,0.7), s );*/
     return color;
 }
 
-/* Atmosphere - end */
+#ifdef WATER_ENABLED
+vec3 WaterColor(vec3 point, vec3 direction) {
+    vec3 water_normal = vec3(0.0f, 1.0f, 0.0f);
+    Ray ray;
+    ray.origin = point;
+    ray.direction = reflect(direction, water_normal);
 
-/*   Move to another shader  */
-/*---------------------------*/
-/*------POST-PROCESSING------*/
-/*---------------------------*/
-vec3 simpleReinhardToneMapping(vec3 color)
-{
-	float exposure = 1.5;
-	color *= exposure/(1. + color / exposure);
-	color = pow(color, vec3(1. / 2.2f));
-	return color;
-}
-/*--------------------*/
-out vec4 final_color;
-
-void main() {
-
-    Ray ray = CreateRay();
-
-    float t = RayMarching(ray);
+    float t; 
+    int id = RayMarching(ray, t);
 
     vec3 color = vec3(0.0f);
-    if (t > 0.0f) {
+    if (id == 1) {
         vec3 hit_point = ray.origin + t*ray.direction;
         vec3 hit_normal = Normal(hit_point);
         hit_point += hit_normal*1000*EPS;
@@ -442,6 +446,69 @@ void main() {
         color = ApplyFog(color, ray.direction, t);
         
     }
+    else {
+        color = (SkyColor(ray.direction) + SunColor(ray.direction))*u_SunIntensity;
+    }
+
+    return 0.1f*vec3(0.2f, 0.2f, 0.35f) + 0.9f*(color*0.35f + 0.65f*vec3(0.2f, 0.2f, 0.35f))*max(dot(u_SunDirection, water_normal), 0.0f)*u_SunIntensity;
+}
+#endif
+/*---------------------------*/
+
+
+
+/*---------------------------*/
+/*------POST-PROCESSING------*/
+/*---------------------------*/
+vec3 simpleReinhardToneMapping(vec3 color)
+{
+	float exposure = 1.5;
+	color *= exposure/(1. + color / exposure);
+	color = pow(color, vec3(1. / 2.2f));
+	return color;
+}
+/*---------------------------*/
+
+
+
+out vec4 final_color;
+void main() {
+
+    Ray ray = CreateRay();
+
+    float t; 
+    int id = RayMarching(ray, t);
+
+    vec3 color = vec3(0.0f);
+    if (id == 1) {
+        vec3 hit_point = ray.origin + t*ray.direction;
+        vec3 hit_normal = Normal(hit_point);
+        hit_point += hit_normal*1000*EPS;
+
+        Ray shadowRay;
+        shadowRay.origin = hit_point;
+        shadowRay.direction = u_SunDirection;
+
+        float shadow = SoftShadow(shadowRay);
+        vec3 cshadow = pow(vec3(shadow), u_SunColor);
+
+        // First light - sky
+        vec3 terrain_color = TerrainColor(hit_point, hit_normal);
+        color = cshadow*terrain_color*max(dot(hit_normal, u_SunDirection), 0.0f)*u_SunIntensity;
+        // Second light - sun
+        color += terrain_color*AmbientOcclusion(hit_point, hit_normal)*SkyColor(hit_normal)*u_SunIntensity*0.2f;   
+        // Third light - Indirect approximation
+        color += terrain_color*max(dot(hit_normal, u_SunDirection*vec3(-1.0f, 0.0f, -1.0f)), 0.0f)*0.1f*u_SunIntensity;
+        color = ApplyFog(color, ray.direction, t);
+        
+    }
+#ifdef WATER_ENABLED
+    else if (id == 2) {
+        vec3 hit_point = ray.origin + t*ray.direction;
+        hit_point += vec3(0.0f, 1.0f, 0.0f)*60.0f*EPS;
+        color = WaterColor(hit_point, ray.direction);
+    }
+#endif
     else {
         color = (SkyColor(ray.direction) + SunColor(ray.direction))*u_SunIntensity;
     }

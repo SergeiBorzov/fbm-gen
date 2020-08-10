@@ -31,6 +31,10 @@ namespace fbmgen {
             m_Shader->AddDefine("\n#define USE_DERIVATIVES\n");
         }
 
+        if (m_WaterEnabled) {
+            m_Shader->AddDefine("\n#define WATER_ENABLED\n");
+        }
+
         switch (interpolation) {
             case FbmInterpolation::Quintic: {
                 m_Shader->AddDefine("\n#define QUINTIC_POLYNOMIAL\n");
@@ -56,6 +60,41 @@ namespace fbmgen {
         
         if (m_FbmUseDerivatives) {
             m_Shader->AddDefine("\n#define USE_DERIVATIVES\n");
+        }
+
+        if (m_WaterEnabled) {
+            m_Shader->AddDefine("\n#define WATER_ENABLED\n");
+        }
+
+        switch (m_FbmInterpolation) {
+            case FbmInterpolation::Quintic: {
+                m_Shader->AddDefine("\n#define QUINTIC_POLYNOMIAL\n");
+                break;
+            }
+            case FbmInterpolation::Cubic: {
+                m_Shader->AddDefine("\n#define CUBIC_POLYNOMIAL\n");
+                break;
+            }
+        }
+        
+        Timer t;
+        t.Run();
+        assert(m_Shader->Compile());
+        t.Stop();
+        console.AddLog("Shader recompiled in %g seconds\n", t.GetTimeS());
+    };
+
+    void Renderer::SetWaterEnabled(bool flag) {
+        m_WaterEnabled = flag;
+        auto& console = m_App->GetLog();
+        m_Shader->ClearDefines();
+        
+        if (m_FbmUseDerivatives) {
+            m_Shader->AddDefine("\n#define USE_DERIVATIVES\n");
+        }
+
+        if (m_WaterEnabled) {
+            m_Shader->AddDefine("\n#define WATER_ENABLED\n");
         }
 
         switch (m_FbmInterpolation) {
@@ -190,6 +229,11 @@ namespace fbmgen {
         if (m_FbmUseDerivatives)
              m_Shader->SetUniform("u_FbmSmoothness", m_FbmSmoothness);
         m_Shader->SetUniform("u_TerrainHeight", m_TerrainHeight);
+        m_Shader->SetUniform("u_SnowLevel", m_SnowLevel);
+        m_Shader->SetUniform("u_GrassLevel", m_GrassLevel);
+        if (m_WaterEnabled) {
+            m_Shader->SetUniform("u_WaterLevel", m_WaterLevel);
+        }
 
         GLCALL(glBindVertexArray(m_VertexArray));
         GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer));
@@ -228,6 +272,11 @@ namespace fbmgen {
         if (m_FbmUseDerivatives)
             m_Shader->SetUniform("u_FbmSmoothness", m_FbmSmoothness);
         m_Shader->SetUniform("u_TerrainHeight", m_TerrainHeight);
+        m_Shader->SetUniform("u_SnowLevel", m_SnowLevel);
+        m_Shader->SetUniform("u_GrassLevel", m_GrassLevel);
+        if (m_WaterEnabled) {
+            m_Shader->SetUniform("u_WaterLevel", m_WaterLevel);
+        }
 
         GLCALL(glBindVertexArray(m_VertexArray));
         GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer));

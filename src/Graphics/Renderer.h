@@ -61,6 +61,18 @@ namespace fbmgen {
 
         inline void SetTerrainHeight(f32 value) { m_TerrainHeight = value; }
         inline f32 GetTerrainHeight() const { return m_TerrainHeight; }
+
+        inline void SetSnowLevel(f32 value) { m_SnowLevel = value; }
+        inline f32 GetSnowLevel() const { return m_SnowLevel; }
+
+        inline void SetGrassLevel(f32 value) { m_GrassLevel = value; }
+        inline f32 GetGrassLevel() const { return m_GrassLevel; }
+
+        void SetWaterEnabled(bool value);
+        inline bool GetWaterEnabled() const { return m_WaterEnabled; }
+
+        inline void SetWaterLevel(f32 value) { m_WaterLevel = value; }
+        inline f32 GetWaterLevel() const { return m_WaterLevel; }
         //
 
         void RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality = 100);
@@ -81,10 +93,14 @@ namespace fbmgen {
         s32 m_FbmOctaves = 16;
         f32 m_FbmSmoothness = 1.0f;
         f32 m_TerrainHeight = 10.0f;
+        f32 m_SnowLevel = 1.4f;
+        f32 m_GrassLevel = 0.5f;
+        f32 m_WaterLevel = 1.0f;
 
 
         FbmInterpolation m_FbmInterpolation = FbmInterpolation::Quintic;
         bool m_FbmUseDerivatives = false;
+        bool m_WaterEnabled = false;
 
         
         /* Screen Quad */ 

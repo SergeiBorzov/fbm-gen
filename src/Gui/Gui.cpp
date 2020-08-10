@@ -251,9 +251,40 @@ namespace fbmgen {
 
         if (ImGui::CollapsingHeader("Terrain")) {
             f32 terrain_height = renderer.GetTerrainHeight();
+            f32 snow_level = renderer.GetSnowLevel();
+            f32 grass_level = renderer.GetGrassLevel();
+
             if (ImGui::DragFloat("Terrain Height", &terrain_height, 0.01f, 0.0f, 10.0f)) {
-                    terrain_height = glm::clamp(terrain_height, 0.0f, 10.0f);
-                    renderer.SetTerrainHeight(terrain_height);
+                terrain_height = glm::clamp(terrain_height, 0.0f, 10.0f);
+                snow_level = glm::clamp(snow_level, 0.0f, terrain_height);
+                grass_level = glm::clamp(grass_level, 0.0f, snow_level);
+            }
+
+            if (ImGui::DragFloat("Snow Level", &snow_level, 0.01f, 0.0f, terrain_height)) {
+                snow_level = glm::clamp(snow_level, 0.0f, terrain_height);
+                grass_level = glm::clamp(grass_level, 0.0f, snow_level);
+            }
+
+            
+            if (ImGui::DragFloat("Grass Level", &grass_level, 0.01f, 0.0f, snow_level)) {
+                grass_level = glm::clamp(grass_level, 0.0f, snow_level);
+            }
+
+            renderer.SetGrassLevel(grass_level);
+            renderer.SetSnowLevel(snow_level);
+            renderer.SetTerrainHeight(terrain_height);
+
+            bool water_enabled = renderer.GetWaterEnabled();
+            if (ImGui::Checkbox("Enable Water", &water_enabled)) {
+                renderer.SetWaterEnabled(water_enabled);
+            }
+
+            if (water_enabled) {
+                f32 water_level = renderer.GetWaterLevel();
+                if (ImGui::DragFloat("Water Level", &water_level, 0.01f, 0.0f, terrain_height)) {
+                    water_level = glm::clamp(water_level, 0.0f, terrain_height);
+                    renderer.SetWaterLevel(water_level);
+                }
             }
         }
 
