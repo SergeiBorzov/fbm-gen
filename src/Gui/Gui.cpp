@@ -281,8 +281,8 @@ namespace fbmgen {
 
             if (water_enabled) {
                 f32 water_level = renderer.GetWaterLevel();
-                if (ImGui::DragFloat("Water Level", &water_level, 0.01f, 0.0f, terrain_height)) {
-                    water_level = glm::clamp(water_level, 0.0f, terrain_height);
+                if (ImGui::DragFloat("Water Level", &water_level, 0.001f, 0.0f, terrain_height)) {
+                    //water_level = glm::clamp(water_level, 0.0f, terrain_height);
                     renderer.SetWaterLevel(water_level);
                 }
             }

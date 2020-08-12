@@ -233,6 +233,7 @@ namespace fbmgen {
         m_Shader->SetUniform("u_GrassLevel", m_GrassLevel);
         if (m_WaterEnabled) {
             m_Shader->SetUniform("u_WaterLevel", m_WaterLevel);
+            m_Shader->SetUniform("u_Time", (f32)glfwGetTime());
         }
 
         GLCALL(glBindVertexArray(m_VertexArray));
@@ -276,6 +277,7 @@ namespace fbmgen {
         m_Shader->SetUniform("u_GrassLevel", m_GrassLevel);
         if (m_WaterEnabled) {
             m_Shader->SetUniform("u_WaterLevel", m_WaterLevel);
+            m_Shader->SetUniform("u_Time", (f32)glfwGetTime());
         }
 
         GLCALL(glBindVertexArray(m_VertexArray));

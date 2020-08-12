@@ -95,7 +95,7 @@ namespace fbmgen {
         f32 m_TerrainHeight = 10.0f;
         f32 m_SnowLevel = 1.4f;
         f32 m_GrassLevel = 0.5f;
-        f32 m_WaterLevel = 1.0f;
+        f32 m_WaterLevel = 0.4f;
 
 
         FbmInterpolation m_FbmInterpolation = FbmInterpolation::Quintic;

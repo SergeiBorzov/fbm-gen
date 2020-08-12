@@ -62,7 +62,10 @@ uniform float u_SnowLevel;
 uniform float u_GrassLevel;
 #ifdef WATER_ENABLED
 uniform float u_WaterLevel;
+uniform float u_Time;
 #endif
+
+
 
 
 /*----------------------*/
@@ -190,7 +193,7 @@ float TerrainSDF(vec3 p) {
 
 #ifdef WATER_ENABLED
 float WaterSDF(vec3 p) {
-    return dot(p + u_WaterLevel, vec3(0.0f, 1.0f, 0.0f));
+    return dot(p - u_WaterLevel + vec3(0.0f, 1.3f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
 }
 #endif
 
@@ -398,7 +401,7 @@ vec3 TerrainColor(vec3 point, vec3 normal) {
     /* if surface is flat add grass or snow */
     vec3 color = mix(rock, mix(grass, snow, smoothstep(0.0f, u_TerrainHeight, point.y)), smoothstep(0.95f, 1.0f, normal.y));
     /* if not add more rocky color */
-    //color = mix(rock, color, smoothstep(0.4f, 0.7f, normal.y));
+    color = mix(rock, color, smoothstep(0.4f, 0.7f, normal.y));
 
     color = mix(grass, color, smoothstep(0.0f, u_GrassLevel, point.y));
     color = mix(color, snow, smoothstep(u_SnowLevel, u_TerrainHeight, point.y));
@@ -415,7 +418,12 @@ vec3 TerrainColor(vec3 point, vec3 normal) {
 
 #ifdef WATER_ENABLED
 vec3 WaterColor(vec3 point, vec3 direction) {
-    vec3 water_normal = vec3(0.0f, 1.0f, 0.0f);
+
+    // Perturb normal
+    float tx = cos(point.x*0.06f)*2.5f;
+    float tz = sin(point.z*0.07f)*2.5f;
+    float co = Noise(vec2(point.x*4.7f + 1.3f + tz, point.z*4.69f + u_Time*2.0f - tx)).x*0.25f;
+    vec3 water_normal = normalize(vec3(co, 30.0f, -co));
     Ray ray;
     ray.origin = point;
     ray.direction = reflect(direction, water_normal);
@@ -447,10 +455,10 @@ vec3 WaterColor(vec3 point, vec3 direction) {
         
     }
     else {
-        color = (SkyColor(ray.direction) + SunColor(ray.direction))*u_SunIntensity;
+        color = (SkyColor(ray.direction) + SunColor(ray.direction)*max(dot(u_SunDirection, water_normal), 0.0f)*u_SunIntensity);
     }
 
-    return 0.1f*vec3(0.2f, 0.2f, 0.35f) + 0.9f*(color*0.35f + 0.65f*vec3(0.2f, 0.2f, 0.35f))*max(dot(u_SunDirection, water_normal), 0.0f)*u_SunIntensity;
+    return 0.1f*vec3(0.2f, 0.2f, 0.35f) + 0.9f*(color*0.55f + 0.45f*vec3(0.1f, 0.1f, 0.4f));
 }
 #endif
 /*---------------------------*/
