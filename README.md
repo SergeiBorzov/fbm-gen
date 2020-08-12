@@ -1,7 +1,7 @@
 FBM-Gen
 =======
 fbm-gen is a simple fractal brownian motion terrain generator. 
-It is a university project for course PV097 at Masaryk University
+It is a project for course PV097 at Masaryk University
 
 Author
 ------
