@@ -41,6 +41,9 @@ namespace fbmgen {
         std::string output_name = "image.png";
         ImageExtension output_extension = ImageExtension::Png;
 
+        std::string load_config_path;
+        std::string load_config_name;
+
         Application* m_App = nullptr;
 
         Camera* m_Camera = nullptr;

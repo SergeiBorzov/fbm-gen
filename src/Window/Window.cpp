@@ -1,6 +1,10 @@
 
 
 #include <cstdio>
+#include <filesystem>
+
+//#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 #include "Window.h"
 #include "../Input/Input.h"
@@ -80,6 +84,19 @@ namespace fbmgen {
 
         glfwSetWindowSizeLimits(m_WindowPointer, 960, 418, GLFW_DONT_CARE, GLFW_DONT_CARE);
         glfwSetWindowUserPointer(m_WindowPointer, &m_WindowData);
+        //GLFWimage icons[1];
+
+        char exe_path[MAX_PATH];
+        HMODULE hModule = GetModuleHandle(NULL);
+        GetModuleFileName(hModule, exe_path, sizeof(exe_path));
+
+        std::filesystem::path path_to_exe = exe_path;
+        std::string path_to_icon = path_to_exe.parent_path().u8string() + "\\" + "icon.png";
+
+        GLFWimage icon;
+        icon.pixels = stbi_load(path_to_icon.c_str(), &icon.width, &icon.height, NULL, NULL);
+        glfwSetWindowIcon(m_WindowPointer, 1, &icon);
+        stbi_image_free(icon.pixels);
 
         glfwSetKeyCallback(m_WindowPointer, KeyPressCallback);
         glfwSetMouseButtonCallback(m_WindowPointer, MouseButtonCallback);

@@ -20,6 +20,19 @@ namespace fbmgen {
                              glm::vec4(position, 1.0f)); 
         }
 
+        inline f32 GetYaw() const { return m_Yaw; }
+        inline f32 GetPitch() const { return m_Pitch; }
+
+        inline void SetViewMatrix(const glm::mat4& view) {
+            m_Right = glm::vec3(view[0]);
+            m_Up = glm::vec3(view[1]);
+            m_Forward = glm::vec3(view[2]);
+            position = glm::vec3(view[3]);
+        }
+
+        inline void SetYaw(f32 value) { m_Yaw = value; }
+        inline void SetPitch(f32 value) { m_Pitch = value; }
+
         inline glm::vec3 GetRight() const { return m_Right; }
         inline glm::vec3 GetUp() const { return m_Up; }
         inline glm::vec3 GetFront() const { return m_Forward; }

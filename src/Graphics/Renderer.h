@@ -76,6 +76,8 @@ namespace fbmgen {
         //
 
         void RenderImage(const char* path, s32 width, s32 height, ImageExtension extension, s32 quality = 100);
+        void SaveConfig(const char* path);
+        void LoadConfig(const char* path);
         ~Renderer();
     private:
         Application* m_App = nullptr;

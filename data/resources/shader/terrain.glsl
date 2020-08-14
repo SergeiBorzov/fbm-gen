@@ -104,7 +104,7 @@ vec3 Noise(vec2 p) {
     float d = Random(i + vec2(1.0f, 1.0f));
     
     // Bilinear interpolation to find noise value
-    float value = mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    float value = mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
     /*  Note:
         n can be represented this way
         n = k0 + k1*v1 + k2*v2 + k3*v1v2
@@ -468,9 +468,19 @@ vec3 WaterColor(vec3 point, vec3 direction) {
 /*---------------------------*/
 /*------POST-PROCESSING------*/
 /*---------------------------*/
+
+vec3 Tonemap_ACES(vec3 x) {
+    // Narkowicz 2015, "ACES Filmic Tone Mapping Curve"
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return (x * (a * x + b)) / (x * (c * x + d) + e);
+}
 vec3 simpleReinhardToneMapping(vec3 color)
 {
-	float exposure = 1.5;
+	float exposure = 1.2;
 	color *= exposure/(1. + color / exposure);
 	color = pow(color, vec3(1. / 2.2f));
 	return color;
@@ -521,6 +531,8 @@ void main() {
         color = (SkyColor(ray.direction) + SunColor(ray.direction))*u_SunIntensity;
     }
 
-    color = simpleReinhardToneMapping(color);
+    color = Tonemap_ACES(color);
+    color = pow(color, vec3(1. / 2.2f));
+    //color = simpleReinhardToneMapping(color);
     final_color = vec4(color, 1.0f);
 }
