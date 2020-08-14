@@ -109,12 +109,6 @@ namespace fbmgen {
         if(ImGui::BeginMainMenuBar()) {
             
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
-
-                }
-                if (ImGui::MenuItem("New", "Ctrl + N")) {
-
-                }
                 ImGui::Separator();
                 
                 if (ImGui::MenuItem("Open", "Ctrl + O") || 
@@ -341,6 +335,7 @@ namespace fbmgen {
         if (m_RenderSettingsVisible) {
             auto& renderer = m_App->GetRenderer();
 
+            ImGui::SetNextWindowSize(ImVec2(400.0f, 200.0f));
             ImGui::Begin("Render image", &m_RenderSettingsVisible);
             ImGui::PushItemWidth(100.0f);
             ImGui::AlignTextToFramePadding();
@@ -457,10 +452,6 @@ namespace fbmgen {
         LoadConfig();
         RenderSettings();
         RenderImage();
-
-        
-        ImGui::ShowDemoWindow();
-
         /* Shortcuts */
         
         

@@ -41,7 +41,7 @@ else()
 endif()
 
 
-add_executable(fbm-gen ${Sources})
+add_executable(fbm-gen WIN32 ${Sources})
 target_include_directories(fbm-gen PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src 
                                           ${CMAKE_CURRENT_SOURCE_DIR}/src/Third_Party/ImGui
                                           ${CMAKE_CURRENT_SOURCE_DIR}/src/Third_Party/stb )
