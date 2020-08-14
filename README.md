@@ -18,8 +18,9 @@ cjson
 
 Example renders
 ---------
-![alt text](https://github.com/TheLazyMan/fbm-gen/tree/master/data/results/render1.png)
-![alt text](https://github.com/TheLazyMan/fbm-gen/tree/master/data/results/render2.png)
-![alt text](https://github.com/TheLazyMan/fbm-gen/tree/master/data/results/render3.png)
-![alt text](https://github.com/TheLazyMan/fbm-gen/tree/master/data/results/render4.png)
-![alt text](https://github.com/TheLazyMan/fbm-gen/tree/master/data/results/render5.png)
+
+![alt text](https://github.com/TheLazyMan/fbm-gen/blob/master/data/results/render1.png)
+![alt text](https://github.com/TheLazyMan/fbm-gen/blob/master/data/results/render2.png)
+![alt text](https://github.com/TheLazyMan/fbm-gen/blob/master/data/results/render3.png)
+![alt text](https://github.com/TheLazyMan/fbm-gen/blob/master/data/results/render4.png)
+![alt text](https://github.com/TheLazyMan/fbm-gen/blob/master/data/results/render5.png)
