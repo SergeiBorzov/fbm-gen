@@ -18,7 +18,7 @@ Dependencies
 [glfw](https://github.com/glfw/glfw)\
 [glm](https://github.com/g-truc/glm)\
 [imgui](https://github.com/ocornut/imgui)\
-[stb_image](https://github.com/nothings/stb)
+[stb_image](https://github.com/nothings/stb)\
 [cJSON](https://github.com/DaveGamble/cJSONg)
 
 Example renders
