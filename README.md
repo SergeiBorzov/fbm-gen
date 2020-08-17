@@ -10,7 +10,7 @@ Sergei Borzov
 Requirements
 ------------
 OS - Windows\
-OpenGL 3.3+\
+OpenGL 3.3+
 
 Dependencies
 ------------
