@@ -11,10 +11,14 @@ Requirements
 ------------
 OS - Windows\
 OpenGL 3.3+\
-glew\
-glfw\
-glm\
-cjson
+
+Dependencies
+------------
+[glew](https://github.com/nigels-com/glew)\
+[glfw](https://github.com/glfw/glfw)\
+[glm](https://github.com/g-truc/glm)\
+[imgui](https://github.com/ocornut/imgui)\
+[cJSON](https://github.com/DaveGamble/cJSONg)
 
 Example renders
 ---------
